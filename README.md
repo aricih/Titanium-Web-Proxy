@@ -27,8 +27,13 @@ Refer the HTTP Proxy Server library in your project, look up Test project to lea
 
 Install by nuget:
 
+For beta releases on [release branch](https://github.com/justcoding121/Titanium-Web-Proxy/tree/release)
+
     Install-Package Titanium.Web.Proxy -Pre
 
+For stable releases on [master branch](https://github.com/justcoding121/Titanium-Web-Proxy/tree/master)
+
+    Install-Package Titanium.Web.Proxy
 
 Setup HTTP proxy:
 
@@ -179,7 +184,8 @@ Future roadmap
 ============
 * Support Server Name Indication (SNI) for transparent endpoints
 * Support HTTP 2.0 
-* Support updstream AutoProxy detection
+* Support upstream AutoProxy detection
+* Support SOCKS protocol
 * Implement Kerberos/NTLM authentication over HTTP protocols for windows domain
 
 
