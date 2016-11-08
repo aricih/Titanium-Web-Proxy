@@ -9,11 +9,10 @@ namespace Titanium.Web.Proxy.Models
 	{
 		public NetworkCredential Credentials { get; set; }
 
-		public string UserName { get; set; }
-
-		public string Password { get; set; }
+		public bool UseDefaultCredentials { get; set; }
 
 		public string HostName { get; set; }
+
 		public int Port { get; set; }
 	}
 }

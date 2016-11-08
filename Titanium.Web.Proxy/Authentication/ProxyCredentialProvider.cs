@@ -15,7 +15,7 @@ namespace Titanium.Web.Proxy.Authentication
 
 		public Task<NetworkCredential> GetCredentials()
 		{
-			return Task.FromResult(proxy.Credentials ?? CredentialCache.DefaultNetworkCredentials);
+			return Task.FromResult(proxy.UseDefaultCredentials ? CredentialCache.DefaultNetworkCredentials : proxy.Credentials);
 		}
 	}
 }
