@@ -56,31 +56,30 @@ namespace Titanium.Web.Proxy.Network
 					: new TcpClient(requestUri.Host, requestUri.Port)
 			};
 
-			if (!isProxified)
+			if (isProxified)
 			{
-				return result;
-			}
-
-			using (var writer = new StreamWriter(result.Stream, Encoding.ASCII, bufferSize, true))
-			{
-				await writer.WriteLineAsync($"CONNECT {requestUri.Host}:{requestUri.Port} HTTP/{httpVersion}");
-				await writer.WriteLineAsync($"Host: {requestUri.Host}:{requestUri.Port}");
-				await writer.WriteLineAsync("Connection: Keep-Alive");
-				await writer.WriteLineAsync("Proxy-Connection: Keep-Alive");
-
-				HttpHeaderCollection authorizationHeaderCollection;
-
-				if (AuthorizationHeaderCache.TryGetProxyAuthorizationHeaders(requestUri.Host, out authorizationHeaderCollection) && authorizationHeaderCollection != null)
+				using (var writer = new StreamWriter(result.Stream, Encoding.ASCII, bufferSize, true))
 				{
-					foreach (var authorizationHeader in authorizationHeaderCollection.Values)
-					{
-						await writer.WriteLineAsync($"{authorizationHeader.Name}:{authorizationHeader.Value}");
-					}
-				}
+					await writer.WriteLineAsync($"CONNECT {requestUri.Host}:{requestUri.Port} HTTP/{httpVersion}");
+					await writer.WriteLineAsync($"Host: {requestUri.Host}:{requestUri.Port}");
+					await writer.WriteLineAsync("Connection: Keep-Alive");
+					await writer.WriteLineAsync("Proxy-Connection: Keep-Alive");
 
-				await writer.WriteLineAsync();
-				await writer.FlushAsync();
-				writer.Close();
+					HttpHeaderCollection authorizationHeaderCollection;
+
+					if (AuthorizationHeaderCache.TryGetProxyAuthorizationHeaders(requestUri.Host, out authorizationHeaderCollection) &&
+						authorizationHeaderCollection != null)
+					{
+						foreach (var authorizationHeader in authorizationHeaderCollection.Values)
+						{
+							await writer.WriteLineAsync($"{authorizationHeader.Name}:{authorizationHeader.Value}");
+						}
+					}
+
+					await writer.WriteLineAsync();
+					await writer.FlushAsync();
+					writer.Close();
+				}
 			}
 
 			SslStream sslStream = null;
@@ -101,7 +100,9 @@ namespace Titanium.Web.Proxy.Network
 				// Failed to create ssl stream return a new connection for authentication
 				result = new TcpClientWrapper
 				{
-					Client = new TcpClient(externalHttpsProxy.HostName, externalHttpsProxy.Port)
+					Client = isProxified
+					? new TcpClient(externalHttpsProxy.HostName, externalHttpsProxy.Port)
+					: new TcpClient(requestUri.Host, requestUri.Port)
 				};
 			}
 

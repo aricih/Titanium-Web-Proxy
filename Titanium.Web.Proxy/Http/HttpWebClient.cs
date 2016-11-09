@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
 using Titanium.Web.Proxy.Models;
@@ -92,10 +93,6 @@ namespace Titanium.Web.Proxy.Http
 				foreach (var header in headers)
 				{
 					requestLines.AppendLine(header.Name + ':' + header.Value);
-					//if (headerItem.Key != "Proxy-Authorization")
-					//{
-						
-					//}
 				}
 			}
 
@@ -139,7 +136,6 @@ namespace Titanium.Web.Proxy.Http
 		internal async Task ReceiveResponse(bool isReplayedRequest = false)
 		{
 			//return if this is already read
-
 			if (Response.ResponseStatusCode != null && !isReplayedRequest) return;
 
 			var httpResult = (await ServerConnection.StreamReader.ReadLineAsync()).Split(ProxyConstants.SpaceSplit, 3);

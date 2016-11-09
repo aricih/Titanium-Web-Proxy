@@ -32,15 +32,6 @@ namespace Titanium.Web.Proxy.Examples.Basic
 				ExcludedHttpsHostNameRegex = new List<string>() { "localhost" }
 			};
 
-			proxyServer.UpStreamHttpProxy = proxyServer.UpStreamHttpsProxy = new ExternalProxy
-			{
-				HostName = "192.168.1.22",
-				Port = 8888,
-				Credentials = new NetworkCredential("1", "1")
-			};
-			
-			proxyServer.GetCustomHttpCredentialsFunc = host => Task.FromResult(new NetworkCredential("1", "1"));
-
 			//An explicit endpoint is where the client knows about the existance of a proxy
 			//So client sends request in a proxy friendly manner
 			proxyServer.AddEndPoint(explicitEndPoint);
