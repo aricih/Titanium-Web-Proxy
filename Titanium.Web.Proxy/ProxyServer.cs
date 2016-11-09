@@ -358,6 +358,11 @@ namespace Titanium.Web.Proxy
 				throw new Exception("Proxy is already running.");
 			}
 
+			if (RequestBodyCache.IsValueCreated)
+			{
+				RequestBodyCache.Value.Clear();
+			}
+
 			certificateCacheManager = new CertificateManager(RootCertificateIssuerName,
 				RootCertificateName, ExceptionFunc);
 
@@ -396,7 +401,6 @@ namespace Titanium.Web.Proxy
 
 			var systemProxyUri = systemProxyResolver.GetProxy(sessionEventArgs.WebSession.Request.RequestUri);
 
-			// TODO: Apply authorization
 			var systemProxy = new ExternalProxy
 			{
 				HostName = systemProxyUri.Host,
@@ -422,7 +426,7 @@ namespace Titanium.Web.Proxy
 			{
 				systemProxySettingsManager.DisableAllProxy();
 #if !DEBUG
-                firefoxProxySettingsManager.RemoveFirefox();
+				firefoxProxySettingsManager.RemoveFirefox();
 #endif
 			}
 
@@ -434,6 +438,11 @@ namespace Titanium.Web.Proxy
 			ProxyEndPoints.Clear();
 
 			certificateCacheManager?.StopClearIdleCertificates();
+
+			if (RequestBodyCache.IsValueCreated)
+			{
+				RequestBodyCache.Value.Clear();
+			}
 
 			proxyRunning = false;
 		}
@@ -550,6 +559,9 @@ namespace Titanium.Web.Proxy
 			endPoint.listener.BeginAcceptTcpClient(OnAcceptConnection, endPoint);
 		}
 
+		/// <summary>
+		/// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+		/// </summary>
 		public void Dispose()
 		{
 			if (proxyRunning)

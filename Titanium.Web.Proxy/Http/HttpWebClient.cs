@@ -25,7 +25,9 @@ namespace Titanium.Web.Proxy.Http
 		public Guid RequestId { get; private set; }
 
 		public List<HttpHeader> ConnectHeaders { get; set; }
+
 		public Request Request { get; set; }
+
 		public Response Response { get; set; }
 
 		/// <summary>
@@ -38,7 +40,6 @@ namespace Titanium.Web.Proxy.Http
 		/// Is Https?
 		/// </summary>
 		public bool IsHttps => this.Request.RequestUri.Scheme == Uri.UriSchemeHttps;
-
 
 		internal HttpWebClient()
 		{
