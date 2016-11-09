@@ -63,11 +63,11 @@ namespace Titanium.Web.Proxy
 		//Called asynchronously when a request was successfully and we received the response
 		public async Task HandleHttpSessionResponse(SessionEventArgs args)
 		{
-			//read response & headers from server
-			await args.WebSession.ReceiveResponse(args.ReRequest);
-
 			try
 			{
+				// Read response & headers from server
+				await args.WebSession.ReceiveResponse(args.ReRequest);
+
 				if (!args.WebSession.Response.ResponseBodyRead)
 				{
 					args.WebSession.Response.ResponseStream = args.WebSession.ServerConnection.Stream;
@@ -168,9 +168,17 @@ namespace Titanium.Web.Proxy
 				ExceptionFunc(new ProxyHttpException("Error occured wilst handling session response", e, args));
 				Dispose(args.ProxyClient.ClientStream, args.ProxyClient.ClientStreamReader,
 					args.ProxyClient.ClientStreamWriter, args);
+				throw;
 			}
 			finally
 			{
+				// Remove cache entry if request body is recorded
+				if (args.WebSession.Request.HasBody && args.WebSession.Request.RecordBody)
+				{
+					string recordedBody;
+					RequestBodyCache.Value.TryRemove(args.WebSession.RequestId, out recordedBody);
+				}
+
 				args.Dispose();
 			}
 		}

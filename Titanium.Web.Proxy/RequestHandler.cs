@@ -246,7 +246,8 @@ namespace Titanium.Web.Proxy
 						args.IsHttps, SupportedSslProtocols,
 						ValidateServerCertificate,
 						SelectClientCertificate,
-						customUpStreamHttpProxy ?? UpStreamHttpProxy, customUpStreamHttpsProxy ?? UpStreamHttpsProxy, args.ProxyClient.ClientStream);
+						customUpStreamHttpProxy ?? UpStreamHttpProxy, customUpStreamHttpsProxy ?? UpStreamHttpsProxy,
+						args.ProxyClient.ClientStream);
 				}
 
 				if (args.WebSession.Request.HasBody && args.WebSession.Request.RecordBody)
@@ -259,7 +260,8 @@ namespace Titanium.Web.Proxy
 				//If request was cancelled by user then dispose the client
 				if (args.WebSession.Request.CancelRequest)
 				{
-					Dispose(args.ProxyClient.ClientStream, args.ProxyClient.ClientStreamReader, args.ProxyClient.ClientStreamWriter, args);
+					Dispose(args.ProxyClient.ClientStream, args.ProxyClient.ClientStreamReader, args.ProxyClient.ClientStreamWriter,
+						args);
 					return;
 				}
 
@@ -277,13 +279,13 @@ namespace Titanium.Web.Proxy
 					if (args.WebSession.Request.Is100Continue)
 					{
 						await WriteResponseStatus(args.WebSession.Response.HttpVersion, "100",
-								"Continue", args.ProxyClient.ClientStreamWriter);
+							"Continue", args.ProxyClient.ClientStreamWriter);
 						await args.ProxyClient.ClientStreamWriter.WriteLineAsync();
 					}
 					else if (args.WebSession.Request.ExpectationFailed)
 					{
 						await WriteResponseStatus(args.WebSession.Response.HttpVersion, "417",
-								"Expectation Failed", args.ProxyClient.ClientStreamWriter);
+							"Expectation Failed", args.ProxyClient.ClientStreamWriter);
 						await args.ProxyClient.ClientStreamWriter.WriteLineAsync();
 					}
 				}
@@ -300,7 +302,8 @@ namespace Titanium.Web.Proxy
 				{
 					if (args.WebSession.Request.ContentEncoding != null)
 					{
-						args.WebSession.Request.RequestBody = await GetCompressedResponseBody(args.WebSession.Request.ContentEncoding, args.WebSession.Request.RequestBody);
+						args.WebSession.Request.RequestBody =
+							await GetCompressedResponseBody(args.WebSession.Request.ContentEncoding, args.WebSession.Request.RequestBody);
 					}
 					//chunked send is not supported as of now
 					args.WebSession.Request.ContentLength = args.WebSession.Request.RequestBody.Length;
@@ -329,14 +332,16 @@ namespace Titanium.Web.Proxy
 				//if connection is closing exit
 				if (args.WebSession.Response.ResponseKeepAlive == false)
 				{
-					Dispose(args.ProxyClient.ClientStream, args.ProxyClient.ClientStreamReader, args.ProxyClient.ClientStreamWriter, args);
+					Dispose(args.ProxyClient.ClientStream, args.ProxyClient.ClientStreamReader, args.ProxyClient.ClientStreamWriter,
+						args);
 					return;
 				}
 			}
 			catch (Exception e)
 			{
 				ExceptionFunc(new ProxyHttpException("Error occured whilst handling session request (internal)", e, args));
-				Dispose(args.ProxyClient.ClientStream, args.ProxyClient.ClientStreamReader, args.ProxyClient.ClientStreamWriter, args);
+				Dispose(args.ProxyClient.ClientStream, args.ProxyClient.ClientStreamReader, args.ProxyClient.ClientStreamWriter,
+					args);
 				return;
 			}
 
