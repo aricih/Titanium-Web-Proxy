@@ -19,9 +19,7 @@ namespace Titanium.Web.Proxy.Http
 		/// <summary>
 		/// Gets a value indicating whether this instance has body.
 		/// </summary>
-		internal bool HasBody => ContentLength > 0
-			&& (Method.ToLowerInvariant() == "post"
-				|| Method.ToLowerInvariant() == "put");
+		internal bool HasBody => ContentLength > 0;
 
 		/// <summary>
 		/// Gets or sets a value indicating whether request body will be recorded.
@@ -37,6 +35,11 @@ namespace Titanium.Web.Proxy.Http
 		/// Request Http Version
 		/// </summary>
 		public Version HttpVersion { get; set; }
+
+		/// <summary>
+		/// Gets the request begin timestamp.
+		/// </summary>
+		public DateTime RequestBegin { get; internal set; }
 
 		/// <summary>
 		/// Request Http hostanem
@@ -267,8 +270,8 @@ namespace Titanium.Web.Proxy.Http
 		/// </summary>
 		internal string RequestBodyString { get; set; }
 
-
 		internal bool RequestBodyRead { get; set; }
+
 		internal bool RequestLocked { get; set; }
 
 		/// <summary>

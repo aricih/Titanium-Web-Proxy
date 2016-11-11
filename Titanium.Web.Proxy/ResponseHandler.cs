@@ -80,6 +80,8 @@ namespace Titanium.Web.Proxy
 				// Read response & headers from server
 				await args.WebSession.ReceiveResponse(args.ReRequest);
 
+				args.WebSession.Response.ResponseReceived = DateTime.Now;
+
 				if (!args.WebSession.Response.ResponseBodyRead)
 				{
 					args.WebSession.Response.ResponseStream = args.WebSession.ServerConnection.Stream;

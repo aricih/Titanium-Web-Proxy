@@ -31,6 +31,8 @@ namespace Titanium.Web.Proxy
 		//So for HTTPS requests client would send CONNECT header to negotiate a secure tcp tunnel via proxy
 		private async Task HandleClient(ExplicitProxyEndPoint endPoint, TcpClient tcpClient)
 		{
+			var requestBeginTimestamp = DateTime.Now;
+
 			Stream clientStream = tcpClient.GetStream();
 
 			clientStream.ReadTimeout = ConnectionTimeOutSeconds * 1000;
@@ -57,8 +59,8 @@ namespace Titanium.Web.Proxy
 				//Find the request Verb
 				var httpVerb = httpCmdSplit[0];
 
-				httpRemoteUri = httpVerb.ToUpper() == "CONNECT" 
-					? new Uri("http://" + httpCmdSplit[1]) 
+				httpRemoteUri = httpVerb.ToUpper() == "CONNECT"
+					? new Uri("http://" + httpCmdSplit[1])
 					: new Uri(httpCmdSplit[1]);
 
 				//parse the HTTP version
@@ -155,7 +157,7 @@ namespace Titanium.Web.Proxy
 
 				// Create the request
 				await HandleHttpSessionRequest(tcpClient, httpCmd, clientStream, clientStreamReader, clientStreamWriter,
-					  httpRemoteUri.Scheme == Uri.UriSchemeHttps ? httpRemoteUri.Host : null, endPoint, connectRequestHeaders);
+					  httpRemoteUri.Scheme == Uri.UriSchemeHttps ? httpRemoteUri.Host : null, endPoint, connectRequestHeaders, requestBeginTimestamp);
 			}
 			catch (Exception)
 			{
@@ -167,6 +169,7 @@ namespace Titanium.Web.Proxy
 		//So for HTTPS requests we would start SSL negotiation right away without expecting a CONNECT request from client
 		private async Task HandleClient(TransparentProxyEndPoint endPoint, TcpClient tcpClient)
 		{
+			var requestBeginTimestamp = DateTime.Now;
 
 			Stream clientStream = tcpClient.GetStream();
 
@@ -214,7 +217,7 @@ namespace Titanium.Web.Proxy
 
 			// Create the request
 			await HandleHttpSessionRequest(tcpClient, httpCmd, clientStream, clientStreamReader, clientStreamWriter,
-				 endPoint.EnableSsl ? endPoint.GenericCertificateName : null, endPoint, null);
+				 endPoint.EnableSsl ? endPoint.GenericCertificateName : null, endPoint, null, requestBeginTimestamp);
 		}
 
 		private async Task HandleHttpSessionRequestInternal(TcpConnection connection, SessionEventArgs args, ExternalProxy customUpStreamHttpProxy, ExternalProxy customUpStreamHttpsProxy, bool closeConnection)
@@ -367,7 +370,9 @@ namespace Titanium.Web.Proxy
 		/// <param name="customUpStreamHttpsProxy">The custom up stream HTTPS proxy.</param>
 		/// <returns>Task.</returns>
 		private async Task HandleHttpSessionRequest(TcpClient client, string httpCmd, Stream clientStream,
-			CustomBinaryReader clientStreamReader, StreamWriter clientStreamWriter, string httpsHostName, ProxyEndPoint endPoint, List<HttpHeader> connectHeaders, ExternalProxy customUpStreamHttpProxy = null, ExternalProxy customUpStreamHttpsProxy = null)
+			CustomBinaryReader clientStreamReader, StreamWriter clientStreamWriter, string httpsHostName,
+			ProxyEndPoint endPoint, List<HttpHeader> connectHeaders, DateTime requestBeginTimestamp,
+			ExternalProxy customUpStreamHttpProxy = null, ExternalProxy customUpStreamHttpsProxy = null)
 		{
 			TcpConnection connection = null;
 
@@ -383,9 +388,11 @@ namespace Titanium.Web.Proxy
 
 				var args = new SessionEventArgs(BUFFER_SIZE, HandleHttpSessionResponse)
 				{
-					ProxyClient = {TcpClient = client},
-					WebSession = {ConnectHeaders = connectHeaders}
+					ProxyClient = { TcpClient = client },
+					WebSession = { ConnectHeaders = connectHeaders }
 				};
+
+				args.WebSession.Request.RequestBegin = requestBeginTimestamp;
 
 				args.WebSession.ProcessId = new Lazy<int>(() =>
 				{
@@ -439,7 +446,7 @@ namespace Titanium.Web.Proxy
 						{
 							var existing = args.WebSession.Request.RequestHeaders[newHeader.Name];
 
-							var nonUniqueHeaders = new List<HttpHeader> {existing, newHeader};
+							var nonUniqueHeaders = new List<HttpHeader> { existing, newHeader };
 
 							args.WebSession.Request.NonUniqueRequestHeaders.Add(newHeader.Name, nonUniqueHeaders);
 							args.WebSession.Request.RequestHeaders.Remove(newHeader.Name);
