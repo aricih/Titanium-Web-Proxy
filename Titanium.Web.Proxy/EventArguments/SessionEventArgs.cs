@@ -63,6 +63,8 @@ namespace Titanium.Web.Proxy.EventArguments
 
 		public ExternalProxy CustomUpStreamHttpsProxyUsed { get; set; }
 
+		internal HttpStatusCode LastStatusCode { get; set; }
+
 		/// <summary>
 		/// Constructor to initialize the proxy
 		/// </summary>

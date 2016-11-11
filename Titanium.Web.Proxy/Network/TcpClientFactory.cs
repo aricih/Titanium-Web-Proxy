@@ -13,7 +13,7 @@ namespace Titanium.Web.Proxy.Network
 {
 	internal class TcpClientFactory
 	{
-		internal async Task<TcpClientWrapper> CreateHttpClient(int bufferSize, int connectionTimeOutSeconds,
+		internal Task<TcpClientWrapper> CreateHttpClient(int bufferSize, int connectionTimeOutSeconds,
 			Uri requestUri,
 			IDictionary<string, HttpHeader> requestHeaders,
 			Version httpVersion, SslProtocols supportedSslProtocols,
@@ -33,10 +33,11 @@ namespace Titanium.Web.Proxy.Network
 
 			if (AuthorizationHeaderCache.HasHost(requestUri.Host))
 			{
-				await AuthenticationClient.PreAuthenticate(requestUri, requestHeaders);
+				AuthenticationClient.PreAuthenticate(requestUri, requestHeaders);
+				result.PreAuthenticateUsed = true;
 			}
 
-			return result;
+			return Task.FromResult(result);
 		}
 
 		internal async Task<TcpClientWrapper> CreateHttpsClient(int bufferSize, int connectionTimeOutSeconds,
@@ -64,6 +65,7 @@ namespace Titanium.Web.Proxy.Network
 					await writer.WriteLineAsync($"Host: {requestUri.Host}:{requestUri.Port}");
 					await writer.WriteLineAsync("Connection: Keep-Alive");
 					await writer.WriteLineAsync("Proxy-Connection: Keep-Alive");
+					await writer.WriteLineAsync("Proxy-Authorization: Basic MTox");
 
 					HttpHeaderCollection authorizationHeaderCollection;
 

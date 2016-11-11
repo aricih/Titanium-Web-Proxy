@@ -6,59 +6,62 @@ using Titanium.Web.Proxy.Models;
 
 namespace Titanium.Web.Proxy.Network
 {
-    /// <summary>
-    /// An object that holds TcpConnection to a particular server & port
-    /// </summary>
-    public class TcpConnection : IDisposable
-    {
-        internal ExternalProxy UpStreamHttpProxy { get; set; }
+	/// <summary>
+	/// An object that holds TcpConnection to a particular server & port
+	/// </summary>
+	public class TcpConnection : IDisposable
+	{
+		internal ExternalProxy UpStreamHttpProxy { get; set; }
 
-        internal ExternalProxy UpStreamHttpsProxy { get; set; }
+		internal ExternalProxy UpStreamHttpsProxy { get; set; }
 
-        internal string HostName { get; set; }
-        internal int Port { get; set; }
+		internal string HostName { get; set; }
 
-        internal bool IsHttps { get; set; }
+		internal int Port { get; set; }
 
-        /// <summary>
-        /// Http version
-        /// </summary>
-        internal Version Version { get; set; }
+		internal bool IsHttps { get; set; }
 
-        internal TcpClient TcpClient { get; set; }
+		internal bool PreAuthenticateUsed { get; set; }
 
-        /// <summary>
-        /// used to read lines from server
-        /// </summary>
-        internal CustomBinaryReader StreamReader { get; set; }
+		/// <summary>
+		/// Http version
+		/// </summary>
+		internal Version Version { get; set; }
 
-        /// <summary>
-        /// Server stream
-        /// </summary>
-        internal Stream Stream { get; set; }
+		internal TcpClient TcpClient { get; set; }
 
-        /// <summary>
-        /// Last time this connection was used
-        /// </summary>
-        internal DateTime LastAccess { get; set; }
+		/// <summary>
+		/// used to read lines from server
+		/// </summary>
+		internal CustomBinaryReader StreamReader { get; set; }
 
-        internal TcpConnection()
-        {
-            LastAccess = DateTime.Now;
-        }
+		/// <summary>
+		/// Server stream
+		/// </summary>
+		internal Stream Stream { get; set; }
 
-        public void Dispose()
-        {
-            Stream.Close();
-            Stream.Dispose();
+		/// <summary>
+		/// Last time this connection was used
+		/// </summary>
+		internal DateTime LastAccess { get; set; }
 
-            TcpClient.LingerState = new LingerOption(true, 0);
-            TcpClient.Client.Shutdown(SocketShutdown.Both);
-            TcpClient.Client.Close();
-            TcpClient.Client.Dispose();
+		internal TcpConnection()
+		{
+			LastAccess = DateTime.Now;
+		}
 
-            TcpClient.Close();
-            
-        }
-    }
+		public void Dispose()
+		{
+			Stream.Close();
+			Stream.Dispose();
+
+			TcpClient.LingerState = new LingerOption(true, 0);
+			TcpClient.Client.Shutdown(SocketShutdown.Both);
+			TcpClient.Client.Close();
+			TcpClient.Client.Dispose();
+
+			TcpClient.Close();
+
+		}
+	}
 }

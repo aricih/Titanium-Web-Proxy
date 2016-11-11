@@ -529,8 +529,6 @@ namespace Titanium.Web.Proxy
 						}
 						else
 						{
-
-
 							await HandleClient(endPoint as ExplicitProxyEndPoint, tcpClient);
 						}
 

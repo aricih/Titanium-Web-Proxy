@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using Titanium.Web.Proxy.Models;
@@ -7,7 +8,7 @@ namespace Titanium.Web.Proxy.Authentication
 {
 	public static class AuthorizationHeaderCache
 	{
-		private static readonly Lazy<Dictionary<string, HttpHeaderCollection>> CredentialCache = new Lazy<Dictionary<string, HttpHeaderCollection>>(() => new Dictionary<string, HttpHeaderCollection>());
+		private static readonly Lazy<ConcurrentDictionary<string, HttpHeaderCollection>> CredentialCache = new Lazy<ConcurrentDictionary<string, HttpHeaderCollection>>(() => new ConcurrentDictionary<string, HttpHeaderCollection>());
 
 		public static void Cache(string hostName, HttpHeader authorizationHeader)
 		{
@@ -19,6 +20,14 @@ namespace Titanium.Web.Proxy.Authentication
 			}
 
 			CredentialCache.Value[hostName].Add(authorizationHeader);
+		}
+
+		public static HttpHeaderCollection Remove(string hostName)
+		{
+			HttpHeaderCollection removedHeaders;
+			CredentialCache.Value.TryRemove(hostName, out removedHeaders);
+
+			return removedHeaders;
 		}
 
 		public static bool HasHost(string hostName)

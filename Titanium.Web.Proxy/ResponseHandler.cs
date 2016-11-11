@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.Security;
 using Titanium.Web.Proxy.EventArguments;
 using Titanium.Web.Proxy.Models;
 using Titanium.Web.Proxy.Compression;
@@ -50,12 +51,23 @@ namespace Titanium.Web.Proxy
 					? (ICredentialProvider) new ProxyCredentialProvider(upstreamProxy)
 					: new HttpCredentialProvider(args.WebSession.Request.RequestUri.Host);
 
+				// If we're stuck at same http status code instead of preauthentication
+				// then preauthentication is failing most likely because of an expired authorization token in cache
+				// so set preauthentication failed flag to invalidate corresponding cache entry
+				var preAuthenticationFailed = args.WebSession.ServerConnection.PreAuthenticateUsed
+					&& args.LastStatusCode == httpStatusCode;
+
 				await AuthenticationClient.Authenticate(
 					args.WebSession.Request.RequestUri,
 					credentialHeader,
 					credentialProvider,
-					args.WebSession.Request.RequestHeaders);
+					args.WebSession.Request.RequestHeaders,
+					preAuthenticationFailed,
+					(args.WebSession.ServerConnection.Stream as SslStream)?.TransportContext);
 			}
+
+			// Update last status code on session
+			args.LastStatusCode = httpStatusCode;
 
 			return isRequestReplayNeeded;
 		}

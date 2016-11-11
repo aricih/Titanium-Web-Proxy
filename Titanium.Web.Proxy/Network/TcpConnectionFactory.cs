@@ -69,7 +69,7 @@ namespace Titanium.Web.Proxy.Network
 					remoteCertificateValidationCallback,
 					localCertificateSelectionCallback,
 					externalHttpProxy,
-					clientStream);
+					clientStream).ConfigureAwait(false);
 
 			clientWrapper.Client.ReceiveTimeout = connectionTimeOutSeconds * 1000;
 			clientWrapper.Client.SendTimeout = connectionTimeOutSeconds * 1000;
@@ -87,7 +87,8 @@ namespace Titanium.Web.Proxy.Network
 				TcpClient = clientWrapper.Client,
 				StreamReader = new CustomBinaryReader(clientWrapper.Stream),
 				Stream = clientWrapper.Stream,
-				Version = httpVersion
+				Version = httpVersion,
+				PreAuthenticateUsed = clientWrapper.PreAuthenticateUsed
 			};
 		}
 	}

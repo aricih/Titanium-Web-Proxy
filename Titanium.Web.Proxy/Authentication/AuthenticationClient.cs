@@ -7,16 +7,20 @@ using Titanium.Web.Proxy.Models;
 
 namespace Titanium.Web.Proxy.Authentication
 {
+	/// <summary>
+	/// Implements support for various HTTP authentication schemes
+	/// </summary>
 	public static class AuthenticationClient
 	{
 		/// <summary>
 		/// Authenticate to the specified remote URI.
 		/// </summary>
 		/// <param name="remoteUri">The remote URI.</param>
-		/// <param name="challenge">The challenge.</param>
+		/// <param name="challengeHeader">The challenge header.</param>
+		/// <param name="credentialProvider">The credential provider.</param>
 		/// <param name="secureTransportContext">The secure transport context.</param>
 		/// <returns>Authorization header.</returns>
-		private static async Task<HttpHeader> AuthenticateInternal(Uri remoteUri, HttpHeader challengeHeader, ICredentialProvider credentialProvider, TransportContext secureTransportContext = null)
+		private static async Task<HttpHeader> AuthenticateInternal(Uri remoteUri, HttpHeader challengeHeader, ICredentialProvider credentialProvider, bool preAuthenticationFailed, TransportContext secureTransportContext = null)
 		{
 			if (challengeHeader == null)
 			{
@@ -26,6 +30,12 @@ namespace Titanium.Web.Proxy.Authentication
 			try
 			{
 				var authenticationRequest = WebRequest.Create(remoteUri);
+
+				// If preauthentication is failed previously remove relevant cache entry
+				if (preAuthenticationFailed)
+				{
+					AuthorizationHeaderCache.Remove(remoteUri.Host);
+				}
 
 				HttpHeaderCollection proxyAuthorizationHeaders;
 
@@ -79,9 +89,10 @@ namespace Titanium.Web.Proxy.Authentication
 		}
 
 		internal static async Task Authenticate(Uri remoteUri, HttpHeader challengeHeader,
-			ICredentialProvider credentialProvider, IDictionary<string, HttpHeader> requestHeaders, TransportContext secureTransportContext = null)
+			ICredentialProvider credentialProvider, IDictionary<string, HttpHeader> requestHeaders, 
+			bool preAuthenticationFailed, TransportContext secureTransportContext = null)
 		{
-			var authorizationHeader = await AuthenticateInternal(remoteUri, challengeHeader, credentialProvider, secureTransportContext);
+			var authorizationHeader = await AuthenticateInternal(remoteUri, challengeHeader, credentialProvider, preAuthenticationFailed, secureTransportContext);
 
 			if (authorizationHeader != null)
 			{
@@ -100,7 +111,7 @@ namespace Titanium.Web.Proxy.Authentication
 		/// <param name="requestHeaders">The request headers.</param>
 		/// <returns>Task.</returns>
 		/// <exception cref="InvalidOperationException">Authorization failed.</exception>
-		internal static async Task PreAuthenticate(Uri requestUri, IDictionary<string, HttpHeader> requestHeaders)
+		internal static void PreAuthenticate(Uri requestUri, IDictionary<string, HttpHeader> requestHeaders)
 		{
 			HttpHeaderCollection authorizationHeaderCollection;
 			

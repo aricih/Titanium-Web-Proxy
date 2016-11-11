@@ -18,5 +18,7 @@ namespace Titanium.Web.Proxy.Network
 		}
 
 		public Stream Stream { get; internal set; }
+
+		internal bool PreAuthenticateUsed { get; set; }
 	}
 }
