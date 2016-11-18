@@ -56,14 +56,14 @@ namespace Titanium.Web.Proxy
 				// so set preauthentication failed flag to invalidate corresponding cache entry
 				var preAuthenticationFailed = args.WebSession.ServerConnection.PreAuthenticateUsed
 					&& args.LastStatusCode == httpStatusCode;
-
+				
 				await AuthenticationClient.Authenticate(
 					args.WebSession.Request.RequestUri,
 					credentialHeader,
 					credentialProvider,
 					args.WebSession.Request.RequestHeaders,
 					preAuthenticationFailed,
-					(args.WebSession.ServerConnection.Stream as SslStream)?.TransportContext);
+					(args.ProxyClient.ClientStream as SslStream)?.TransportContext);
 			}
 
 			// Update last status code on session
