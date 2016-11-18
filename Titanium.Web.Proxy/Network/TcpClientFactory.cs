@@ -1,12 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Authentication;
 using System.Text;
 using System.Threading.Tasks;
 using Titanium.Web.Proxy.Authentication;
+using Titanium.Web.Proxy.Helpers;
 using Titanium.Web.Proxy.Models;
 
 namespace Titanium.Web.Proxy.Network
@@ -57,6 +59,12 @@ namespace Titanium.Web.Proxy.Network
 					: new TcpClient(requestUri.Host, requestUri.Port)
 			};
 
+			if (AuthorizationHeaderCache.HasHost(requestUri.Host))
+			{
+				AuthenticationClient.PreAuthenticate(requestUri, requestHeaders);
+				result.PreAuthenticateUsed = true;
+			}
+
 			if (isProxified)
 			{
 				using (var writer = new StreamWriter(result.Stream, Encoding.ASCII, bufferSize, true))
@@ -65,7 +73,6 @@ namespace Titanium.Web.Proxy.Network
 					await writer.WriteLineAsync($"Host: {requestUri.Host}:{requestUri.Port}");
 					await writer.WriteLineAsync("Connection: Keep-Alive");
 					await writer.WriteLineAsync("Proxy-Connection: Keep-Alive");
-					await writer.WriteLineAsync("Proxy-Authorization: Basic MTox");
 
 					HttpHeaderCollection authorizationHeaderCollection;
 
@@ -82,8 +89,13 @@ namespace Titanium.Web.Proxy.Network
 					await writer.FlushAsync();
 					writer.Close();
 				}
-			}
 
+				using (var reader = new CustomBinaryReader(result.Stream))
+				{
+					await reader.ReadAllLinesAsync();
+				}
+			}
+			
 			SslStream sslStream = null;
 
 			try
@@ -99,13 +111,17 @@ namespace Titanium.Web.Proxy.Network
 			{
 				sslStream?.Dispose();
 
-				// Failed to create ssl stream return a new connection for authentication
-				result = new TcpClientWrapper
+				if (isProxified)
 				{
-					Client = isProxified
-					? new TcpClient(externalHttpsProxy.HostName, externalHttpsProxy.Port)
-					: new TcpClient(requestUri.Host, requestUri.Port)
-				};
+					result = new TcpClientWrapper
+					{
+						Client = new TcpClient(externalHttpsProxy.HostName, externalHttpsProxy.Port)
+					};
+				}
+				else
+				{
+					throw;
+				}
 			}
 
 			return result;
