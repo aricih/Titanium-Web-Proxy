@@ -4,18 +4,18 @@ using Titanium.Web.Proxy.Models;
 
 namespace Titanium.Web.Proxy.Authentication
 {
-    public class ProxyCredentialProvider : ICredentialProvider
-    {
-        private readonly ExternalProxy proxy;
+	public class ProxyCredentialProvider : ICredentialProvider
+	{
+		private readonly ExternalProxy proxy;
 
-        public ProxyCredentialProvider(ExternalProxy externalProxy)
-        {
-            proxy = externalProxy;
-        }
+		public ProxyCredentialProvider(ExternalProxy externalProxy)
+		{
+			proxy = externalProxy;
+		}
 
-        public Task<NetworkCredential> GetCredentials()
-        {
-            return Task.FromResult(proxy.UseDefaultCredentials ? CredentialCache.DefaultNetworkCredentials : proxy.Credentials);
-        }
-    }
+		public Task<NetworkCredential> GetCredentials()
+		{
+			return Task.FromResult(proxy.UseDefaultCredentials ? CredentialCache.DefaultNetworkCredentials : proxy.Credentials);
+		}
+	}
 }

@@ -6,325 +6,325 @@ using Titanium.Web.Proxy.Extensions;
 
 namespace Titanium.Web.Proxy.Http
 {
-    /// <summary>
-    /// A HTTP(S) request object
-    /// </summary>
-    public class Request
-    {
-        /// <summary>
-        /// Request Method
-        /// </summary>
-        public string Method { get; set; }
+	/// <summary>
+	/// A HTTP(S) request object
+	/// </summary>
+	public class Request
+	{
+		/// <summary>
+		/// Request Method
+		/// </summary>
+		public string Method { get; set; }
 
-        /// <summary>
-        /// Gets a value indicating whether this instance has body.
-        /// </summary>
-        internal bool HasBody => ContentLength > 0;
+		/// <summary>
+		/// Gets a value indicating whether this instance has body.
+		/// </summary>
+		internal bool HasBody => ContentLength > 0;
 
-        /// <summary>
-        /// Gets or sets a value indicating whether request body will be recorded.
-        /// </summary>
-        public bool RecordBody { get; set; }
+		/// <summary>
+		/// Gets or sets a value indicating whether request body will be recorded.
+		/// </summary>
+		public bool RecordBody { get; set; }
 
-        /// <summary>
-        /// Request HTTP Uri
-        /// </summary>
-        public Uri RequestUri { get; set; }
+		/// <summary>
+		/// Request HTTP Uri
+		/// </summary>
+		public Uri RequestUri { get; set; }
 
-        /// <summary>
-        /// Request Http Version
-        /// </summary>
-        public Version HttpVersion { get; set; }
+		/// <summary>
+		/// Request Http Version
+		/// </summary>
+		public Version HttpVersion { get; set; }
 
-        /// <summary>
-        /// Gets the request begin timestamp.
-        /// </summary>
-        public DateTime RequestBegin { get; internal set; }
+		/// <summary>
+		/// Gets the request begin timestamp.
+		/// </summary>
+		public DateTime RequestBegin { get; internal set; }
 
-        /// <summary>
-        /// Request Http hostanem
-        /// </summary>
-        internal string Host
-        {
-            get
-            {
-                var hasHeader = RequestHeaders.ContainsKey("host");
-                if (hasHeader)
-                {
-                    return RequestHeaders["host"].Value;
-                }
+		/// <summary>
+		/// Request Http hostanem
+		/// </summary>
+		internal string Host
+		{
+			get
+			{
+				var hasHeader = RequestHeaders.ContainsKey("host");
+				if (hasHeader)
+				{
+					return RequestHeaders["host"].Value;
+				}
 
-                return null;
-            }
-            set
-            {
-                var hasHeader = RequestHeaders.ContainsKey("host");
-                if (hasHeader)
-                {
-                    RequestHeaders["host"].Value = value;
-                }
-                else
-                {
-                    RequestHeaders.Add("Host", new HttpHeader("Host", value));
-                }
+				return null;
+			}
+			set
+			{
+				var hasHeader = RequestHeaders.ContainsKey("host");
+				if (hasHeader)
+				{
+					RequestHeaders["host"].Value = value;
+				}
+				else
+				{
+					RequestHeaders.Add("Host", new HttpHeader("Host", value));
+				}
 
-            }
-        }
+			}
+		}
 
-        /// <summary>
-        /// Request content encoding
-        /// </summary>
-        internal string ContentEncoding
-        {
-            get
-            {
-                var hasHeader = RequestHeaders.ContainsKey("content-encoding");
+		/// <summary>
+		/// Request content encoding
+		/// </summary>
+		internal string ContentEncoding
+		{
+			get
+			{
+				var hasHeader = RequestHeaders.ContainsKey("content-encoding");
 
-                if (hasHeader)
-                {
-                    return RequestHeaders["content-encoding"].Value;
-                }
+				if (hasHeader)
+				{
+					return RequestHeaders["content-encoding"].Value;
+				}
 
-                return null;
-            }
-        }
+				return null;
+			}
+		}
 
-        /// <summary>
-        /// Request content-length
-        /// </summary>
-        public long ContentLength
-        {
-            get
-            {
-                var hasHeader = RequestHeaders.ContainsKey("content-length");
+		/// <summary>
+		/// Request content-length
+		/// </summary>
+		public long ContentLength
+		{
+			get
+			{
+				var hasHeader = RequestHeaders.ContainsKey("content-length");
 
-                if (hasHeader == false)
-                {
-                    return -1;
-                }
+				if (hasHeader == false)
+				{
+					return -1;
+				}
 
-                var header = RequestHeaders["content-length"];
+				var header = RequestHeaders["content-length"];
 
-                long contentLen;
-                long.TryParse(header.Value, out contentLen);
-                if (contentLen >= 0)
-                {
-                    return contentLen;
-                }
+				long contentLen;
+				long.TryParse(header.Value, out contentLen);
+				if (contentLen >= 0)
+				{
+					return contentLen;
+				}
 
-                return -1;
-            }
-            set
-            {
-                var hasHeader = RequestHeaders.ContainsKey("content-length");
+				return -1;
+			}
+			set
+			{
+				var hasHeader = RequestHeaders.ContainsKey("content-length");
 
-                var header = RequestHeaders["content-length"];
+				var header = RequestHeaders["content-length"];
 
-                if (value >= 0)
-                {
-                    if (hasHeader)
-                    {
-                        header.Value = value.ToString();
-                    }
-                    else
-                    {
-                        RequestHeaders.Add("content-length", new HttpHeader("content-length", value.ToString()));
-                    }
+				if (value >= 0)
+				{
+					if (hasHeader)
+					{
+						header.Value = value.ToString();
+					}
+					else
+					{
+						RequestHeaders.Add("content-length", new HttpHeader("content-length", value.ToString()));
+					}
 
-                    IsChunked = false;
-                }
-                else
-                {
-                    if (hasHeader)
-                    {
-                        RequestHeaders.Remove("content-length");
-                    }
+					IsChunked = false;
+				}
+				else
+				{
+					if (hasHeader)
+					{
+						RequestHeaders.Remove("content-length");
+					}
 
-                }
+				}
 
-            }
-        }
+			}
+		}
 
-        /// <summary>
-        /// Request content-type
-        /// </summary>
-        public string ContentType
-        {
-            get
-            {
-                var hasHeader = RequestHeaders.ContainsKey("content-type");
+		/// <summary>
+		/// Request content-type
+		/// </summary>
+		public string ContentType
+		{
+			get
+			{
+				var hasHeader = RequestHeaders.ContainsKey("content-type");
 
-                if (hasHeader)
-                {
-                    var header = RequestHeaders["content-type"];
-                    return header.Value;
-                }
+				if (hasHeader)
+				{
+					var header = RequestHeaders["content-type"];
+					return header.Value;
+				}
 
-                return null;
-            }
-            set
-            {
-                var hasHeader = RequestHeaders.ContainsKey("content-type");
+				return null;
+			}
+			set
+			{
+				var hasHeader = RequestHeaders.ContainsKey("content-type");
 
-                if (hasHeader)
-                {
-                    var header = RequestHeaders["content-type"];
-                    header.Value = value.ToString();
-                }
-                else
-                {
-                    RequestHeaders.Add("content-type", new HttpHeader("content-type", value.ToString()));
-                }
-            }
+				if (hasHeader)
+				{
+					var header = RequestHeaders["content-type"];
+					header.Value = value.ToString();
+				}
+				else
+				{
+					RequestHeaders.Add("content-type", new HttpHeader("content-type", value.ToString()));
+				}
+			}
 
-        }
+		}
 
-        /// <summary>
-        /// Is request body send as chunked bytes
-        /// </summary>
-        public bool IsChunked
-        {
-            get
-            {
-                var hasHeader = RequestHeaders.ContainsKey("transfer-encoding");
+		/// <summary>
+		/// Is request body send as chunked bytes
+		/// </summary>
+		public bool IsChunked
+		{
+			get
+			{
+				var hasHeader = RequestHeaders.ContainsKey("transfer-encoding");
 
-                if (hasHeader)
-                {
-                    var header = RequestHeaders["transfer-encoding"];
+				if (hasHeader)
+				{
+					var header = RequestHeaders["transfer-encoding"];
 
-                    return header.Value.ToLower().Contains("chunked");
-                }
+					return header.Value.ToLower().Contains("chunked");
+				}
 
-                return false;
-            }
-            set
-            {
-                var hasHeader = RequestHeaders.ContainsKey("transfer-encoding");
+				return false;
+			}
+			set
+			{
+				var hasHeader = RequestHeaders.ContainsKey("transfer-encoding");
 
-                if (value)
-                {
-                    if (hasHeader)
-                    {
-                        var header = RequestHeaders["transfer-encoding"];
-                        header.Value = "chunked";
-                    }
-                    else
-                    {
-                        RequestHeaders.Add("transfer-encoding", new HttpHeader("transfer-encoding", "chunked"));
-                    }
+				if (value)
+				{
+					if (hasHeader)
+					{
+						var header = RequestHeaders["transfer-encoding"];
+						header.Value = "chunked";
+					}
+					else
+					{
+						RequestHeaders.Add("transfer-encoding", new HttpHeader("transfer-encoding", "chunked"));
+					}
 
-                    ContentLength = -1;
-                }
-                else
-                {
-                    if (hasHeader)
-                    {
-                        RequestHeaders.Remove("transfer-encoding");
-                    }
-                }
-            }
-        }
+					ContentLength = -1;
+				}
+				else
+				{
+					if (hasHeader)
+					{
+						RequestHeaders.Remove("transfer-encoding");
+					}
+				}
+			}
+		}
 
-        /// <summary>
-        /// Does this request has a 100-continue header?
-        /// </summary>
-        public bool ExpectContinue
-        {
-            get
-            {
-                var hasHeader = RequestHeaders.ContainsKey("expect");
+		/// <summary>
+		/// Does this request has a 100-continue header?
+		/// </summary>
+		public bool ExpectContinue
+		{
+			get
+			{
+				var hasHeader = RequestHeaders.ContainsKey("expect");
 
-                if (hasHeader)
-                {
-                    var header = RequestHeaders["expect"];
+				if (hasHeader)
+				{
+					var header = RequestHeaders["expect"];
 
-                    return header.Value.Equals("100-continue");
-                }
+					return header.Value.Equals("100-continue");
+				}
 
-                return false;
-            }
-        }
+				return false;
+			}
+		}
 
-        /// <summary>
-        /// Request Url
-        /// </summary>
-        public string Url => RequestUri.OriginalString;
+		/// <summary>
+		/// Request Url
+		/// </summary>
+		public string Url => RequestUri.OriginalString;
 
-        /// <summary>
-        /// Encoding for this request
-        /// </summary>
-        internal Encoding Encoding => this.GetEncoding();
+		/// <summary>
+		/// Encoding for this request
+		/// </summary>
+		internal Encoding Encoding => this.GetEncoding();
 
-        /// <summary>
-        /// Terminates the underlying Tcp Connection to client after current request
-        /// </summary>
-        internal bool CancelRequest { get; set; }
+		/// <summary>
+		/// Terminates the underlying Tcp Connection to client after current request
+		/// </summary>
+		internal bool CancelRequest { get; set; }
 
-        /// <summary>
-        /// Request body as byte array
-        /// </summary>
-        internal byte[] RequestBody { get; set; }
+		/// <summary>
+		/// Request body as byte array
+		/// </summary>
+		internal byte[] RequestBody { get; set; }
 
-        /// <summary>
-        /// request body as string
-        /// </summary>
-        internal string RequestBodyString { get; set; }
+		/// <summary>
+		/// request body as string
+		/// </summary>
+		internal string RequestBodyString { get; set; }
 
-        internal bool RequestBodyRead { get; set; }
+		internal bool RequestBodyRead { get; set; }
 
-        internal bool RequestLocked { get; set; }
+		internal bool RequestLocked { get; set; }
 
-        /// <summary>
-        /// Does this request has an upgrade to websocket header?
-        /// </summary>
-        internal bool UpgradeToWebSocket
-        {
-            get
-            {
-                var hasHeader = RequestHeaders.ContainsKey("upgrade");
+		/// <summary>
+		/// Does this request has an upgrade to websocket header?
+		/// </summary>
+		internal bool UpgradeToWebSocket
+		{
+			get
+			{
+				var hasHeader = RequestHeaders.ContainsKey("upgrade");
 
-                if (hasHeader == false)
-                {
-                    return false;
-                }
+				if (hasHeader == false)
+				{
+					return false;
+				}
 
-                var header = RequestHeaders["upgrade"];
+				var header = RequestHeaders["upgrade"];
 
-                if (header.Value.ToLower() == "websocket")
-                {
-                    return true;
-                }
+				if (header.Value.ToLower() == "websocket")
+				{
+					return true;
+				}
 
-                return false;
+				return false;
 
-            }
-        }
+			}
+		}
 
-        /// <summary>
-        /// Unique Request header collection
-        /// </summary>
-        public Dictionary<string, HttpHeader> RequestHeaders { get; set; }
+		/// <summary>
+		/// Unique Request header collection
+		/// </summary>
+		public Dictionary<string, HttpHeader> RequestHeaders { get; set; }
 
-        /// <summary>
-        /// Non Unique headers
-        /// </summary>
-        public Dictionary<string, List<HttpHeader>> NonUniqueRequestHeaders { get; set; }
+		/// <summary>
+		/// Non Unique headers
+		/// </summary>
+		public Dictionary<string, List<HttpHeader>> NonUniqueRequestHeaders { get; set; }
 
-        /// <summary>
-        /// Does server responsed positively for 100 continue request
-        /// </summary>
-        public bool Is100Continue { get; internal set; }
+		/// <summary>
+		/// Does server responsed positively for 100 continue request
+		/// </summary>
+		public bool Is100Continue { get; internal set; }
 
-        /// <summary>
-        /// Server responsed negatively for the request for 100 continue
-        /// </summary>
-        public bool ExpectationFailed { get; internal set; }
+		/// <summary>
+		/// Server responsed negatively for the request for 100 continue
+		/// </summary>
+		public bool ExpectationFailed { get; internal set; }
 
-        public Request()
-        {
-            RequestHeaders = new Dictionary<string, HttpHeader>(StringComparer.OrdinalIgnoreCase);
-            NonUniqueRequestHeaders = new Dictionary<string, List<HttpHeader>>(StringComparer.OrdinalIgnoreCase);
-        }
+		public Request()
+		{
+			RequestHeaders = new Dictionary<string, HttpHeader>(StringComparer.OrdinalIgnoreCase);
+			NonUniqueRequestHeaders = new Dictionary<string, List<HttpHeader>>(StringComparer.OrdinalIgnoreCase);
+		}
 
-    }
+	}
 }

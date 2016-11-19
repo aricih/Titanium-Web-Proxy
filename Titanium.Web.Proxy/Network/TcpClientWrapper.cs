@@ -3,22 +3,22 @@ using System.Net.Sockets;
 
 namespace Titanium.Web.Proxy.Network
 {
-    internal class TcpClientWrapper
-    {
-        private TcpClient client;
+	internal class TcpClientWrapper
+	{
+		private TcpClient client;
 
-        public TcpClient Client
-        {
-            get { return client; }
-            set
-            {
-                client = value;
-                Stream = client.GetStream();
-            }
-        }
+		public TcpClient Client
+		{
+			get { return client; }
+			set
+			{
+				client = value;
+				Stream = client.GetStream();
+			}
+		}
 
-        public Stream Stream { get; internal set; }
+		public Stream Stream { get; internal set; }
 
-        internal bool PreAuthenticateUsed { get; set; }
-    }
+		internal bool PreAuthenticateUsed { get; set; }
+	}
 }

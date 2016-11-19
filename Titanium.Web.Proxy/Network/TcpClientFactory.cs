@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Authentication;
@@ -12,118 +13,118 @@ using Titanium.Web.Proxy.Models;
 
 namespace Titanium.Web.Proxy.Network
 {
-    internal class TcpClientFactory
-    {
-        internal Task<TcpClientWrapper> CreateHttpClient(int bufferSize, int connectionTimeOutSeconds,
-            Uri requestUri,
-            IDictionary<string, HttpHeader> requestHeaders,
-            Version httpVersion, SslProtocols supportedSslProtocols,
-            RemoteCertificateValidationCallback remoteCertificateValidationCallback,
-            LocalCertificateSelectionCallback localCertificateSelectionCallback,
-            ExternalProxy externalHttpProxy,
-            Stream clientStream)
-        {
-            var isProxified = (externalHttpProxy != null && externalHttpProxy.HostName != requestUri.Host);
+	internal class TcpClientFactory
+	{
+		internal Task<TcpClientWrapper> CreateHttpClient(int bufferSize, int connectionTimeOutSeconds,
+			Uri requestUri,
+			IDictionary<string, HttpHeader> requestHeaders,
+			Version httpVersion, SslProtocols supportedSslProtocols,
+			RemoteCertificateValidationCallback remoteCertificateValidationCallback,
+			LocalCertificateSelectionCallback localCertificateSelectionCallback,
+			ExternalProxy externalHttpProxy,
+			Stream clientStream)
+		{
+			var isProxified = (externalHttpProxy != null && externalHttpProxy.HostName != requestUri.Host);
 
-            var result = new TcpClientWrapper
-            {
-                Client = isProxified
-                    ? new TcpClient(externalHttpProxy.HostName, externalHttpProxy.Port)
-                    : new TcpClient(requestUri.Host, requestUri.Port)
-            };
+			var result = new TcpClientWrapper
+			{
+				Client = isProxified
+					? new TcpClient(externalHttpProxy.HostName, externalHttpProxy.Port)
+					: new TcpClient(requestUri.Host, requestUri.Port)
+			};
 
-            if (AuthorizationHeaderCache.HasHost(requestUri.Host))
-            {
-                AuthenticationClient.PreAuthenticate(requestUri, requestHeaders);
-                result.PreAuthenticateUsed = true;
-            }
+			if (AuthorizationHeaderCache.HasHost(requestUri.Host))
+			{
+				AuthenticationClient.PreAuthenticate(requestUri, requestHeaders);
+				result.PreAuthenticateUsed = true;
+			}
 
-            return Task.FromResult(result);
-        }
+			return Task.FromResult(result);
+		}
 
-        internal async Task<TcpClientWrapper> CreateHttpsClient(int bufferSize, int connectionTimeOutSeconds,
-            Uri requestUri, IDictionary<string, HttpHeader> requestHeaders,
-            Version httpVersion, SslProtocols supportedSslProtocols,
-            RemoteCertificateValidationCallback remoteCertificateValidationCallback,
-            LocalCertificateSelectionCallback localCertificateSelectionCallback,
-            ExternalProxy externalHttpsProxy,
-            Stream clientStream)
-        {
-            var isProxified = (externalHttpsProxy != null && externalHttpsProxy.HostName != requestUri.Host);
+		internal async Task<TcpClientWrapper> CreateHttpsClient(int bufferSize, int connectionTimeOutSeconds,
+			Uri requestUri, IDictionary<string, HttpHeader> requestHeaders,
+			Version httpVersion, SslProtocols supportedSslProtocols,
+			RemoteCertificateValidationCallback remoteCertificateValidationCallback,
+			LocalCertificateSelectionCallback localCertificateSelectionCallback,
+			ExternalProxy externalHttpsProxy,
+			Stream clientStream)
+		{
+			var isProxified = (externalHttpsProxy != null && externalHttpsProxy.HostName != requestUri.Host);
 
-            var result = new TcpClientWrapper
-            {
-                Client = isProxified
-                    ? new TcpClient(externalHttpsProxy.HostName, externalHttpsProxy.Port)
-                    : new TcpClient(requestUri.Host, requestUri.Port)
-            };
+			var result = new TcpClientWrapper
+			{
+				Client = isProxified
+					? new TcpClient(externalHttpsProxy.HostName, externalHttpsProxy.Port)
+					: new TcpClient(requestUri.Host, requestUri.Port)
+			};
 
-            if (AuthorizationHeaderCache.HasHost(requestUri.Host))
-            {
-                AuthenticationClient.PreAuthenticate(requestUri, requestHeaders);
-                result.PreAuthenticateUsed = true;
-            }
+			if (AuthorizationHeaderCache.HasHost(requestUri.Host))
+			{
+				AuthenticationClient.PreAuthenticate(requestUri, requestHeaders);
+				result.PreAuthenticateUsed = true;
+			}
 
-            if (isProxified)
-            {
-                using (var writer = new StreamWriter(result.Stream, Encoding.ASCII, bufferSize, true))
-                {
-                    await writer.WriteLineAsync($"CONNECT {requestUri.Host}:{requestUri.Port} HTTP/{httpVersion}");
-                    await writer.WriteLineAsync($"Host: {requestUri.Host}:{requestUri.Port}");
-                    await writer.WriteLineAsync("Connection: Keep-Alive");
-                    await writer.WriteLineAsync("Proxy-Connection: Keep-Alive");
+			if (isProxified)
+			{
+				using (var writer = new StreamWriter(result.Stream, Encoding.ASCII, bufferSize, true))
+				{
+					await writer.WriteLineAsync($"CONNECT {requestUri.Host}:{requestUri.Port} HTTP/{httpVersion}");
+					await writer.WriteLineAsync($"Host: {requestUri.Host}:{requestUri.Port}");
+					await writer.WriteLineAsync("Connection: Keep-Alive");
+					await writer.WriteLineAsync("Proxy-Connection: Keep-Alive");
 
-                    HttpHeaderCollection authorizationHeaderCollection;
+					HttpHeaderCollection authorizationHeaderCollection;
 
-                    if (AuthorizationHeaderCache.TryGetProxyAuthorizationHeaders(requestUri.Host, out authorizationHeaderCollection) &&
-                        authorizationHeaderCollection != null)
-                    {
-                        foreach (var authorizationHeader in authorizationHeaderCollection.Values)
-                        {
-                            await writer.WriteLineAsync($"{authorizationHeader.Name}:{authorizationHeader.Value}");
-                        }
-                    }
+					if (AuthorizationHeaderCache.TryGetProxyAuthorizationHeaders(requestUri.Host, out authorizationHeaderCollection) &&
+						authorizationHeaderCollection != null)
+					{
+						foreach (var authorizationHeader in authorizationHeaderCollection.Values)
+						{
+							await writer.WriteLineAsync($"{authorizationHeader.Name}:{authorizationHeader.Value}");
+						}
+					}
 
-                    await writer.WriteLineAsync();
-                    await writer.FlushAsync();
-                    writer.Close();
-                }
+					await writer.WriteLineAsync();
+					await writer.FlushAsync();
+					writer.Close();
+				}
 
-                using (var reader = new CustomBinaryReader(result.Stream))
-                {
-                    await reader.ReadAllLinesAsync();
-                }
-            }
-            
-            SslStream sslStream = null;
+				using (var reader = new CustomBinaryReader(result.Stream))
+				{
+					await reader.ReadAllLinesAsync();
+				}
+			}
+			
+			SslStream sslStream = null;
 
-            try
-            {
-                sslStream = new SslStream(result.Stream, true, remoteCertificateValidationCallback,
-                    localCertificateSelectionCallback);
+			try
+			{
+				sslStream = new SslStream(result.Stream, true, remoteCertificateValidationCallback,
+					localCertificateSelectionCallback);
 
-                await sslStream.AuthenticateAsClientAsync(requestUri.Host, null, supportedSslProtocols, false);
+				await sslStream.AuthenticateAsClientAsync(requestUri.Host, null, supportedSslProtocols, false);
 
-                result.Stream = sslStream;
-            }
-            catch
-            {
-                sslStream?.Dispose();
+				result.Stream = sslStream;
+			}
+			catch
+			{
+				sslStream?.Dispose();
 
-                if (isProxified)
-                {
-                    result = new TcpClientWrapper
-                    {
-                        Client = new TcpClient(externalHttpsProxy.HostName, externalHttpsProxy.Port)
-                    };
-                }
-                else
-                {
-                    throw;
-                }
-            }
+				if (isProxified)
+				{
+					result = new TcpClientWrapper
+					{
+						Client = new TcpClient(externalHttpsProxy.HostName, externalHttpsProxy.Port)
+					};
+				}
+				else
+				{
+					throw;
+				}
+			}
 
-            return result;
-        }
-    }
+			return result;
+		}
+	}
 }
