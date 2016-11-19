@@ -12,7 +12,7 @@ namespace Titanium.Web.Proxy.UnitTests
         public void GivenOneEndpointIsAlreadyAddedToAddress_WhenAddingNewEndpointToExistingAddress_ThenExceptionIsThrown()
         {
             // Arrange
-	        var proxy = ProxyServer.Instance;
+            var proxy = ProxyServer.Instance;
             const int port = 9999;
             var firstIpAddress = IPAddress.Parse("127.0.0.1");
             var secondIpAddress = IPAddress.Parse("127.0.0.1");
@@ -37,7 +37,7 @@ namespace Titanium.Web.Proxy.UnitTests
         public void GivenOneEndpointIsAlreadyAddedToAddress_WhenAddingNewEndpointToExistingAddress_ThenTwoEndpointsExists()
         {
             // Arrange
-	        var proxy = ProxyServer.Instance;
+            var proxy = ProxyServer.Instance;
             const int port = 9999;
             var firstIpAddress = IPAddress.Parse("127.0.0.1");
             var secondIpAddress = IPAddress.Parse("192.168.1.1");
@@ -54,7 +54,7 @@ namespace Titanium.Web.Proxy.UnitTests
         public void GivenOneEndpointIsAlreadyAddedToPort_WhenAddingNewEndpointToExistingPort_ThenExceptionIsThrown()
         {
             // Arrange
-	        var proxy = ProxyServer.Instance;
+            var proxy = ProxyServer.Instance;
             const int port = 9999;
             proxy.AddEndPoint(new ExplicitProxyEndPoint(IPAddress.Loopback, port, false));
 
@@ -77,7 +77,7 @@ namespace Titanium.Web.Proxy.UnitTests
         public void GivenOneEndpointIsAlreadyAddedToZeroPort_WhenAddingNewEndpointToExistingPort_ThenTwoEndpointsExists()
         {
             // Arrange
-	        var proxy = ProxyServer.Instance;
+            var proxy = ProxyServer.Instance;
             const int port = 0;
             proxy.AddEndPoint(new ExplicitProxyEndPoint(IPAddress.Loopback, port, false));
 
