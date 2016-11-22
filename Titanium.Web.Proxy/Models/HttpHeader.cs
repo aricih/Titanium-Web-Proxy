@@ -15,7 +15,7 @@ namespace Titanium.Web.Proxy.Models
             }
 
             Name = name.Trim();
-            Value = value.Trim();
+            Value = value?.Trim();
         }
 
         public string Name { get; set; }
