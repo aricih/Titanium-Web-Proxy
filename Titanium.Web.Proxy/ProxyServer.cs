@@ -196,6 +196,11 @@ namespace Titanium.Web.Proxy
         /// </summary>
         public bool ForwardToUpstreamGateway { get; set; }
 
+        /// <summary>
+        /// Gets or sets a value indicating whether simple authentication will be forced on HTTP 401.
+        /// </summary>
+        public bool ForceSimpleAuthentication { get; set; }
+
         public static string DefaultRootCertificateName { get; set; } = "Titanium Root Certificate Authority";
 
         public static string DefaultRootCertificateIssuerName { get; set; } = "Titanium";
@@ -288,7 +293,6 @@ namespace Titanium.Web.Proxy
             Console.WriteLine("Set endpoint at Ip {1} and port: {2} as System HTTP Proxy", endPoint.GetType().Name, endPoint.IpAddress, endPoint.Port);
 
         }
-
 
         /// <summary>
         /// Set the given explicit end point as the default proxy server for current machine

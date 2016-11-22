@@ -6,6 +6,7 @@ using System.Net.Security;
 using Titanium.Web.Proxy.Helpers;
 using Titanium.Web.Proxy.Models;
 using System.Security.Authentication;
+using System.Text;
 
 namespace Titanium.Web.Proxy.Network
 {
@@ -76,6 +77,15 @@ namespace Titanium.Web.Proxy.Network
 
             clientWrapper.Stream.ReadTimeout = connectionTimeOutSeconds * 1000;
             clientWrapper.Stream.WriteTimeout = connectionTimeOutSeconds * 1000;
+
+            if (ProxyServer.Instance.ForceSimpleAuthentication && ProxyServer.Instance.GetCustomHttpCredentialsFunc != null)
+            {
+                var credentials = await ProxyServer.Instance.GetCustomHttpCredentialsFunc(requestUri.Host);
+
+                var authorizationHeader = new HttpHeader("Authorization", $"Simple {Convert.ToBase64String(Encoding.UTF8.GetBytes($"{credentials.UserName}:{credentials.Password}"))}");
+
+                requestHeaders[authorizationHeader.Name] = authorizationHeader;
+            }
 
             return new TcpConnection
             {
