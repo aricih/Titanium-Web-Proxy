@@ -24,6 +24,11 @@ namespace Titanium.Web.Proxy.Models
 
         public void Add(HttpHeader header)
         {
+            if (header == null)
+            {
+                return;
+            }
+
             this[header.Name] = header;
         }
     }

@@ -290,8 +290,6 @@ namespace Titanium.Web.Proxy
 #if !DEBUG
             firefoxProxySettingsManager.AddFirefox();
 #endif
-            Console.WriteLine("Set endpoint at Ip {1} and port: {2} as System HTTP Proxy", endPoint.GetType().Name, endPoint.IpAddress, endPoint.Port);
-
         }
 
         /// <summary>
@@ -325,7 +323,6 @@ namespace Titanium.Web.Proxy
 #if !DEBUG
             firefoxProxySettingsManager.AddFirefox();
 #endif
-            Console.WriteLine("Set endpoint at Ip {1} and port: {2} as System HTTPS Proxy", endPoint.GetType().Name, endPoint.IpAddress, endPoint.Port);
         }
 
         /// <summary>
