@@ -118,12 +118,12 @@ namespace Titanium.Web.Proxy.Http
             {
                 var hasHeader = RequestHeaders.ContainsKey("content-length");
 
-                var header = RequestHeaders["content-length"];
-
                 if (value >= 0)
                 {
                     if (hasHeader)
                     {
+                        var header = RequestHeaders["content-length"];
+
                         header.Value = value.ToString();
                     }
                     else
@@ -169,11 +169,11 @@ namespace Titanium.Web.Proxy.Http
                 if (hasHeader)
                 {
                     var header = RequestHeaders["content-type"];
-                    header.Value = value.ToString();
+                    header.Value = value;
                 }
                 else
                 {
-                    RequestHeaders.Add("content-type", new HttpHeader("content-type", value.ToString()));
+                    RequestHeaders.Add("content-type", new HttpHeader("content-type", value));
                 }
             }
 
@@ -192,7 +192,7 @@ namespace Titanium.Web.Proxy.Http
                 {
                     var header = RequestHeaders["transfer-encoding"];
 
-                    return header.Value.ToLower().Contains("chunked");
+                    return header.Value?.ToLower().Contains("chunked") ?? false;
                 }
 
                 return false;
@@ -238,7 +238,7 @@ namespace Titanium.Web.Proxy.Http
                 {
                     var header = RequestHeaders["expect"];
 
-                    return header.Value.Equals("100-continue");
+                    return header.Value?.Equals("100-continue", StringComparison.OrdinalIgnoreCase) ?? false;
                 }
 
                 return false;
