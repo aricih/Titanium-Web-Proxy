@@ -195,7 +195,7 @@ namespace Titanium.Web.Proxy.Network
             }
             try
             {
-                X509Store x509RootStore = new X509Store(StoreName.Root, StoreLocation.CurrentUser);
+                var x509RootStore = new X509Store(StoreName.Root, StoreLocation.CurrentUser);
                 var x509PersonalStore = new X509Store(StoreName.My, StoreLocation.CurrentUser);
 
                 x509RootStore.Open(OpenFlags.ReadWrite);
@@ -203,8 +203,15 @@ namespace Titanium.Web.Proxy.Network
 
                 try
                 {
-                    x509RootStore.Add(rootCertificate);
-                    x509PersonalStore.Add(rootCertificate);
+                    if (!x509RootStore.Certificates.Contains(rootCertificate))
+                    {
+                        x509RootStore.Add(rootCertificate);
+                    }
+
+                    if (!x509PersonalStore.Certificates.Contains(rootCertificate))
+                    {
+                        x509PersonalStore.Add(rootCertificate);
+                    }
                 }
                 finally
                 {
