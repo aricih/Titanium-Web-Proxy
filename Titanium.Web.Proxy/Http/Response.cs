@@ -49,7 +49,10 @@ namespace Titanium.Web.Proxy.Http
             }
         }
 
-        internal Version HttpVersion { get; set; }
+        /// <summary>
+        /// Gets or sets the HTTP version.
+        /// </summary>
+        public Version HttpVersion { get; set; }
 
         /// <summary>
         /// Keep the connection alive?
