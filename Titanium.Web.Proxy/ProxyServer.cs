@@ -74,6 +74,11 @@ namespace Titanium.Web.Proxy
         public string RootCertificateName { get; set; }
 
         /// <summary>
+        /// Gets or sets the name of the root certificate friendly.
+        /// </summary>
+        public string RootCertificateFriendlyName { get; set; }
+
+        /// <summary>
         /// Trust the RootCertificate used by this proxy server
         /// Note that this do not make the client trust the certificate!
         /// This would import the root certificate to the certificate store of machine that runs this proxy server
@@ -205,6 +210,9 @@ namespace Titanium.Web.Proxy
 
         public static string DefaultRootCertificateIssuerName { get; set; } = "Titanium";
 
+        public static string DefaultRootCertificateFriendlyName { get; set; } = "DO_NOT_TRUST_TitaniumProxy-CE";
+
+
         /// <summary>
         /// Prevents a default instance of the <see cref="ProxyServer"/> class from being created.
         /// </summary>
@@ -229,7 +237,7 @@ namespace Titanium.Web.Proxy
             RootCertificateIssuerName = RootCertificateIssuerName ?? DefaultRootCertificateIssuerName;
         }
 
-        private static readonly Lazy<ProxyServer> singleton = new Lazy<ProxyServer>(() => new ProxyServer());
+        private static readonly Lazy<ProxyServer> singleton = new Lazy<ProxyServer>(() => new ProxyServer(DefaultRootCertificateName, DefaultRootCertificateIssuerName));
 
         public static ProxyServer Instance => singleton.Value;
 
