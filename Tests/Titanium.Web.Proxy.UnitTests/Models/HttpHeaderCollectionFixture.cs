@@ -10,9 +10,7 @@ namespace UnitTests.Titanium.Web.Proxy.Models
 		[Test]
 		public void Add_should_handle_null_input()
 		{
-			var headerCollection = new HttpHeaderCollection();
-
-			headerCollection.Add(null);
+			var headerCollection = new HttpHeaderCollection { null };
 
 			Assert.Zero(headerCollection.Count);
 		}
@@ -20,9 +18,7 @@ namespace UnitTests.Titanium.Web.Proxy.Models
 		[Test]
 		public void Should_initialize_correctly()
 		{
-			var fakeHeader = UnitTestHelpers.GetFakeObject<HttpHeader>();
-			fakeHeader.Name = "test";
-			fakeHeader.Value = "test";
+			var fakeHeader = UnitTestHelpers.GetFakeObject<HttpHeader>("test", "test");
 
 			var headerCollection = new HttpHeaderCollection { fakeHeader };
 

@@ -1,5 +1,5 @@
 ﻿using System.Net;
-using Moq;
+using NSubstitute;
 
 namespace UnitTests.Titanium.Web.Proxy.Helpers
 {
@@ -10,9 +10,9 @@ namespace UnitTests.Titanium.Web.Proxy.Helpers
 		/// </summary>
 		/// <typeparam name="T">The type.</typeparam>
 		/// <returns>Fake object.</returns>
-		public static T GetFakeObject<T>() where T : class
+		public static T GetFakeObject<T>(params object[] constructorArguments) where T : class
 		{
-			return new Mock<T>().Object;
+			return Substitute.For<T>(constructorArguments);
 		}
 
 		/// <summary>
