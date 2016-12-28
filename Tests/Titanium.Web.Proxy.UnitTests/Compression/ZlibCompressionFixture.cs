@@ -6,17 +6,17 @@ using Titanium.Web.Proxy.Compression;
 namespace Titanium.Web.Proxy.UnitTests.Compression
 {
     [TestFixture]
-    public class DeflateCompressionFixture
+    public class ZlibCompressionFixture
     {
-        [TestCaseSource(typeof(DeflateCompressionTestCaseSource), nameof(DeflateCompressionTestCaseSource.CompressTestCases))]
+        [TestCaseSource(typeof(ZlibCompressionTestCaseSource), nameof(ZlibCompressionTestCaseSource.CompressTestCases))]
         public byte[] Compress_works_properly(byte[] data)
         {
-            var compression = new DeflateCompression();
+            var compression = new ZlibCompression();
 
             return compression.Compress(data).Result;
         }
 
-        private class DeflateCompressionTestCaseSource
+        private class ZlibCompressionTestCaseSource
         {
             public static IEnumerable CompressTestCases
             {
@@ -31,11 +31,11 @@ namespace Titanium.Web.Proxy.UnitTests.Compression
                         .SetName("Handles empty input");
 
                     yield return new TestCaseData(new byte[] { 0, 0, 0, 0, 0, 0, 0, 0 })
-                        .Returns(new byte[] { 99, 96, 128, 0, 0 })
+                        .Returns(new byte[] { 120, 156, 99, 96, 128, 0, 0, 0, 8, 0, 1 })
                         .SetName("Compresses zero vector properly");
 
                     yield return new TestCaseData(new byte[] { 0, 1, 2, 4, 8, 16, 32, 64 })
-                        .Returns(new byte[] { 99, 96, 100, 98, 225, 16, 80, 112, 0, 0 })
+                        .Returns(new byte[] { 120, 156, 99, 96, 100, 98, 225, 16, 80, 112, 0, 0, 0, 255, 0, 128 })
                         .SetName("Compresses arbitrary data properly");
                 }
             }
