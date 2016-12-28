@@ -39,10 +39,12 @@ namespace Titanium.Web.Proxy.Helpers
     /// <summary>
     /// Manage system proxy settings
     /// </summary>
-    internal  class SystemProxyManager
+    internal class SystemProxyManager
     {
         internal const int InternetOptionSettingsChanged = 39;
         internal const int InternetOptionRefresh = 37;
+
+        private List<HttpSystemProxyValue> systemProxyValues;
 
         internal void SetHttpProxy(string hostname, int port)
         {
@@ -85,9 +87,16 @@ namespace Titanium.Web.Proxy.Helpers
                 PrepareRegistry(reg);
 
                 var exisitingContent = reg.GetValue("ProxyServer") as string;
+
                 var existingSystemProxyValues = GetSystemProxyValues(exisitingContent);
+
+                if (existingSystemProxyValues != null && (systemProxyValues == null || systemProxyValues.Count == 0))
+                {
+                    systemProxyValues = existingSystemProxyValues.Select(proxy => new HttpSystemProxyValue { HostName = proxy.HostName, Port = proxy.Port, IsHttps = proxy.IsHttps }).ToList();
+                }
+
                 existingSystemProxyValues.RemoveAll(x => protocolType == ProxyProtocolType.Https ? x.IsHttps : !x.IsHttps);
-                existingSystemProxyValues.Add(new HttpSystemProxyValue()
+                existingSystemProxyValues.Add(new HttpSystemProxyValue
                 {
                     HostName = hostname,
                     IsHttps = protocolType == ProxyProtocolType.Https,
@@ -122,6 +131,8 @@ namespace Titanium.Web.Proxy.Helpers
                     reg.SetValue("ProxyEnable", 0);
                     reg.SetValue("ProxyServer", string.Empty);
                 }
+
+                systemProxyValues.Clear();
             }
 
             Refresh();
@@ -137,8 +148,17 @@ namespace Titanium.Web.Proxy.Helpers
 
             if (reg != null)
             {
-                reg.SetValue("ProxyEnable", 0);
-                reg.SetValue("ProxyServer", string.Empty);
+                if (systemProxyValues?.Count > 0)
+                {
+                    reg.SetValue("ProxyEnable", 1);
+                    reg.SetValue("ProxyServer", string.Join(";", systemProxyValues.Select(x => x.ToString()).ToArray()));
+                }
+                else
+                {
+                    reg.SetValue("ProxyEnable", 0);
+                    reg.SetValue("ProxyServer", string.Empty);
+                }
+
             }
 
             Refresh();
@@ -183,7 +203,7 @@ namespace Titanium.Web.Proxy.Helpers
 
             if (tmp.StartsWith("http=") || tmp.StartsWith("https="))
             {
-                var endPoint = tmp.Substring(5);
+                var endPoint = tmp.Split('=')[1];
                 return new HttpSystemProxyValue()
                 {
                     HostName = endPoint.Split(':')[0],
