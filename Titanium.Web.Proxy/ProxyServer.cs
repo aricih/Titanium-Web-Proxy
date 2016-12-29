@@ -405,6 +405,21 @@ namespace Titanium.Web.Proxy
         /// <returns><see cref="ExternalProxy"/> instance containing valid proxy configuration from PAC/WAPD scripts if any exists.</returns>
         private Task<ExternalProxy> GetSystemUpStreamProxy(SessionEventArgs sessionEventArgs)
         {
+            var systemProxyRegistryValue =
+                systemProxySettingsManager.GetSystemProxy(sessionEventArgs.IsHttps
+                    ? ProxyProtocolType.Https
+                    : ProxyProtocolType.Http);
+
+            if (systemProxyRegistryValue != null)
+            {
+                return Task.FromResult(new ExternalProxy
+                {
+                    HostName = systemProxyRegistryValue.HostName,
+                    Port = systemProxyRegistryValue.Port,
+                    UseDefaultCredentials = true
+                });
+            }
+
             // Use built-in WebProxy class to handle PAC/WAPD scripts.
             var systemProxyResolver = new WebProxy();
 
@@ -413,9 +428,10 @@ namespace Titanium.Web.Proxy
             var systemProxy = new ExternalProxy
             {
                 HostName = systemProxyUri.Host,
-                Port = systemProxyUri.Port
+                Port = systemProxyUri.Port,
+                UseDefaultCredentials = true
             };
-
+            
             return Task.FromResult(systemProxy);
         }
 
@@ -454,6 +470,17 @@ namespace Titanium.Web.Proxy
             }
 
             proxyRunning = false;
+        }
+
+        /// <summary>
+        /// Determines whether the specified socket belongs to the proxy server.
+        /// </summary>
+        /// <param name="ipAddress">The ip address.</param>
+        /// <param name="port">The port.</param>
+        /// <returns><c>true</c> if the proxy server has has the specified socket; otherwise, <c>false</c>.</returns>
+        internal bool HasSocket(IPAddress ipAddress, int port)
+        {
+            return ProxyEndPoints.Any(endPoint => endPoint.IpAddress.Equals(ipAddress) && port != 0 && endPoint.Port == port);
         }
 
         /// <summary>

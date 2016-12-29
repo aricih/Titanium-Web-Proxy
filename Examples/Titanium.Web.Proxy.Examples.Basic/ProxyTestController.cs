@@ -15,6 +15,8 @@ namespace Titanium.Web.Proxy.Examples.Basic
         {
             proxyServer = ProxyServer.Instance;
             proxyServer.TrustRootCertificate = true;
+	        proxyServer.ForwardToUpstreamGateway = true;
+
         }
 
         public void StartProxy()
