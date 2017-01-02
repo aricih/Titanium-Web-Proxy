@@ -410,28 +410,37 @@ namespace Titanium.Web.Proxy
                     ? ProxyProtocolType.Https
                     : ProxyProtocolType.Http);
 
+            ExternalProxy systemProxy;
+
             if (systemProxyRegistryValue != null)
             {
-                return Task.FromResult(new ExternalProxy
-                {
-                    HostName = systemProxyRegistryValue.HostName,
-                    Port = systemProxyRegistryValue.Port,
-                    UseDefaultCredentials = true
-                });
+                systemProxy = HasSocket(systemProxyRegistryValue.HostName, systemProxyRegistryValue.Port)
+                    ? null
+                    : new ExternalProxy
+                    {
+                        HostName = systemProxyRegistryValue.HostName,
+                        Port = systemProxyRegistryValue.Port,
+                        UseDefaultCredentials = true
+                    };
+            }
+            else
+            {
+                // Use built-in WebProxy class to handle PAC/WAPD scripts.
+                var systemProxyResolver = new WebProxy();
+
+                var systemProxyUri = systemProxyResolver.GetProxy(sessionEventArgs.WebSession.Request.RequestUri);
+
+                systemProxy = systemProxyUri.Host.Equals(sessionEventArgs.WebSession.Request.Host,
+                    StringComparison.InvariantCultureIgnoreCase)
+                    ? null
+                    : new ExternalProxy
+                    {
+                        HostName = systemProxyUri.Host,
+                        Port = systemProxyUri.Port,
+                        UseDefaultCredentials = true
+                    };
             }
 
-            // Use built-in WebProxy class to handle PAC/WAPD scripts.
-            var systemProxyResolver = new WebProxy();
-
-            var systemProxyUri = systemProxyResolver.GetProxy(sessionEventArgs.WebSession.Request.RequestUri);
-
-            var systemProxy = new ExternalProxy
-            {
-                HostName = systemProxyUri.Host,
-                Port = systemProxyUri.Port,
-                UseDefaultCredentials = true
-            };
-            
             return Task.FromResult(systemProxy);
         }
 
@@ -480,7 +489,23 @@ namespace Titanium.Web.Proxy
         /// <returns><c>true</c> if the proxy server has has the specified socket; otherwise, <c>false</c>.</returns>
         internal bool HasSocket(IPAddress ipAddress, int port)
         {
-            return ProxyEndPoints.Any(endPoint => endPoint.IpAddress.Equals(ipAddress) && port != 0 && endPoint.Port == port);
+            return ProxyEndPoints.Any(endPoint => (endPoint.IpAddress.Equals(IPAddress.Any) 
+                || endPoint.IpAddress.Equals(IPAddress.IPv6Any)
+                || endPoint.IpAddress.Equals(ipAddress))
+            && port != 0 && endPoint.Port == port);
+        }
+
+        /// <summary>
+        /// Determines whether the specified socket belongs to the proxy server.
+        /// </summary>
+        /// <param name="hostName">Name of the host.</param>
+        /// <param name="port">The port.</param>
+        /// <returns><c>true</c> if the proxy server has has the specified socket; otherwise, <c>false</c>.</returns>
+        internal bool HasSocket(string hostName, int port)
+        {
+            var ipAddresses = Dns.GetHostAddresses(hostName);
+
+            return ipAddresses.Any(ipAddress => HasSocket(ipAddress, port));
         }
 
         /// <summary>
@@ -489,12 +514,12 @@ namespace Titanium.Web.Proxy
         /// <param name="endPoint"></param>
         private void Listen(ProxyEndPoint endPoint)
         {
-            endPoint.listener = new TcpListener(endPoint.IpAddress, endPoint.Port);
-            endPoint.listener.Start();
+            endPoint.Listener = new TcpListener(endPoint.IpAddress, endPoint.Port);
+            endPoint.Listener.Start();
 
-            endPoint.Port = ((IPEndPoint)endPoint.listener.LocalEndpoint).Port;
+            endPoint.Port = ((IPEndPoint)endPoint.Listener.LocalEndpoint).Port;
             // accept clients asynchronously
-            endPoint.listener.BeginAcceptTcpClient(OnAcceptConnection, endPoint);
+            endPoint.Listener.BeginAcceptTcpClient(OnAcceptConnection, endPoint);
         }
 
         /// <summary>
@@ -503,9 +528,9 @@ namespace Titanium.Web.Proxy
         /// <param name="endPoint"></param>
         private void QuitListen(ProxyEndPoint endPoint)
         {
-            endPoint.listener.Stop();
-            endPoint.listener.Server.Close();
-            endPoint.listener.Server.Dispose();
+            endPoint.Listener.Stop();
+            endPoint.Listener.Server.Close();
+            endPoint.Listener.Server.Dispose();
         }
 
         /// <summary>
@@ -538,7 +563,7 @@ namespace Titanium.Web.Proxy
             try
             {
                 //based on end point type call appropriate request handlers
-                tcpClient = endPoint.listener.EndAcceptTcpClient(asyn);
+                tcpClient = endPoint.Listener.EndAcceptTcpClient(asyn);
             }
             catch (ObjectDisposedException)
             {
@@ -590,7 +615,7 @@ namespace Titanium.Web.Proxy
             }
 
             // Get the listener that handles the client request.
-            endPoint.listener.BeginAcceptTcpClient(OnAcceptConnection, endPoint);
+            endPoint.Listener.BeginAcceptTcpClient(OnAcceptConnection, endPoint);
         }
 
         /// <summary>

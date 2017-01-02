@@ -24,7 +24,7 @@ namespace Titanium.Web.Proxy.Models
                                    || IpAddress == IPAddress.IPv6Loopback
                                    || IpAddress == IPAddress.IPv6None;
 
-        internal TcpListener listener { get; set; }
+        internal TcpListener Listener { get; set; }
     }
 
     /// <summary>
