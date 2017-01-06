@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
 using Titanium.Web.Proxy.Models;
@@ -15,8 +14,6 @@ namespace Titanium.Web.Proxy.Http
     /// </summary>
     public class HttpWebClient
     {
-
-
         /// <summary>
         /// Connection to server
         /// </summary>

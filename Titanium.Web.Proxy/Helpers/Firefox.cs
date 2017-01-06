@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 
 namespace Titanium.Web.Proxy.Helpers
 {
@@ -8,28 +9,79 @@ namespace Titanium.Web.Proxy.Helpers
     /// </summary>
     public class FireFoxProxySettingsManager
     {
-        public  void AddFirefox()
+        private const string FirefoxPreferencesProxyDisableConfiguration = "user_pref(\"network.proxy.type\", 0);";
+
+        private void WriteToPreferencesFile(DirectoryInfo firefoxProfileDirectory, Func<string, string> contentTransformer)
+        {
+            var firefoxPreferences = firefoxProfileDirectory.FullName + "\\prefs.js";
+
+            if (!File.Exists(firefoxPreferences))
+            {
+                return;
+            }
+
+            using (var preferencesReader = new StreamReader(firefoxPreferences))
+            {
+                var preferencesContent = preferencesReader.ReadToEnd();
+                preferencesReader.Close();
+
+                var newContent = contentTransformer(preferencesContent);
+
+                // string.IsNullOrEmpty is avoided deliberetly because string.Empty could be a valid configuration file.
+                if (newContent == null)
+                {
+                    return;
+                }
+
+                File.Delete(firefoxPreferences);
+                File.WriteAllText(firefoxPreferences, newContent);
+            }
+        }
+
+        /// <summary>
+        /// Enables proxy in firefox preferences config file.
+        /// </summary>
+        /// <param name="firefoxProfileDirectory">The firefox profile directory.</param>
+        private void EnableProxy(DirectoryInfo firefoxProfileDirectory)
+        {
+            WriteToPreferencesFile(firefoxProfileDirectory, 
+                content => !content.Contains(FirefoxPreferencesProxyDisableConfiguration) 
+                    ? null 
+                    : content.Replace(FirefoxPreferencesProxyDisableConfiguration, string.Empty));
+        }
+
+        /// <summary>
+        /// Disables proxy in firefox preferences config file.
+        /// </summary>
+        /// <param name="firefoxProfileDirectory">The firefox profile directory.</param>
+        private void DisableProxy(DirectoryInfo firefoxProfileDirectory)
+        {
+            WriteToPreferencesFile(firefoxProfileDirectory,
+                content => content.Contains(FirefoxPreferencesProxyDisableConfiguration)
+                    ? null
+                    : string.Concat(content, $"\r\n{FirefoxPreferencesProxyDisableConfiguration}"));
+        }
+
+        public void AddFirefox()
         {
             try
             {
-                var myProfileDirectory =
+                var firefoxProfileDirectory =
                     new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) +
-                                      "\\Mozilla\\Firefox\\Profiles\\").GetDirectories("*.default");
-                var myFfPrefFile = myProfileDirectory[0].FullName + "\\prefs.js";
-                if (File.Exists(myFfPrefFile))
-                {
-                    // We have a pref file so let''s make sure it has the proxy setting
-                    var myReader = new StreamReader(myFfPrefFile);
-                    var myPrefContents = myReader.ReadToEnd();
-                    myReader.Close();
-                    if (myPrefContents.Contains("user_pref(\"network.proxy.type\", 0);"))
-                    {
-                        // Add the proxy enable line and write it back to the file
-                        myPrefContents = myPrefContents.Replace("user_pref(\"network.proxy.type\", 0);", "");
+                                      "\\Mozilla\\Firefox\\Profiles\\").GetDirectories("*.default").FirstOrDefault();
 
-                        File.Delete(myFfPrefFile);
-                        File.WriteAllText(myFfPrefFile, myPrefContents);
-                    }
+                var firefoxDevEditionProfileDirectory =
+                    new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) +
+                                      "\\Mozilla\\Firefox\\Profiles\\").GetDirectories("*.dev-edition-default").FirstOrDefault();
+
+                if (firefoxProfileDirectory != null)
+                {
+                    EnableProxy(firefoxProfileDirectory);
+                }
+
+                if (firefoxDevEditionProfileDirectory != null)
+                {
+                    EnableProxy(firefoxDevEditionProfileDirectory);
                 }
             }
             catch (Exception)
@@ -42,24 +94,22 @@ namespace Titanium.Web.Proxy.Helpers
         {
             try
             {
-                var myProfileDirectory =
+                var firefoxProfileDirectory =
                     new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) +
-                                      "\\Mozilla\\Firefox\\Profiles\\").GetDirectories("*.default");
-                var myFfPrefFile = myProfileDirectory[0].FullName + "\\prefs.js";
-                if (File.Exists(myFfPrefFile))
-                {
-                    // We have a pref file so let''s make sure it has the proxy setting
-                    var myReader = new StreamReader(myFfPrefFile);
-                    var myPrefContents = myReader.ReadToEnd();
-                    myReader.Close();
-                    if (!myPrefContents.Contains("user_pref(\"network.proxy.type\", 0);"))
-                    {
-                        // Add the proxy enable line and write it back to the file
-                        myPrefContents = myPrefContents + "\n\r" + "user_pref(\"network.proxy.type\", 0);";
+                                      "\\Mozilla\\Firefox\\Profiles\\").GetDirectories("*.default").FirstOrDefault();
 
-                        File.Delete(myFfPrefFile);
-                        File.WriteAllText(myFfPrefFile, myPrefContents);
-                    }
+                var firefoxDevEditionProfileDirectory =
+                    new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) +
+                                      "\\Mozilla\\Firefox\\Profiles\\").GetDirectories("*.dev-edition-default").FirstOrDefault();
+
+                if (firefoxProfileDirectory != null)
+                {
+                    DisableProxy(firefoxProfileDirectory);
+                }
+
+                if (firefoxDevEditionProfileDirectory != null)
+                {
+                    DisableProxy(firefoxDevEditionProfileDirectory);
                 }
             }
             catch (Exception)
