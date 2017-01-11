@@ -1,7 +1,6 @@
 ﻿using System.IO;
 using System.IO.Compression;
 using System.Threading.Tasks;
-using Titanium.Web.Proxy.Shared;
 
 namespace Titanium.Web.Proxy.Decompression
 {
@@ -12,6 +11,11 @@ namespace Titanium.Web.Proxy.Decompression
     {
         public async Task<byte[]> Decompress(byte[] compressedArray, int bufferSize)
         {
+            if (compressedArray == null || bufferSize < 1)
+            {
+                return null;
+            }
+
             using (var decompressor = new GZipStream(new MemoryStream(compressedArray), CompressionMode.Decompress))
             {
                 var buffer = new byte[bufferSize];

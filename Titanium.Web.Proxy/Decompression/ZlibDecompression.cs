@@ -12,6 +12,11 @@ namespace Titanium.Web.Proxy.Decompression
     {
         public async Task<byte[]> Decompress(byte[] compressedArray, int bufferSize)
         {
+            if (compressedArray == null || bufferSize < 1)
+            {
+                return null;
+            }
+
             var memoryStream = new MemoryStream(compressedArray);
             using (var decompressor = new ZlibStream(memoryStream, CompressionMode.Decompress))
             {
