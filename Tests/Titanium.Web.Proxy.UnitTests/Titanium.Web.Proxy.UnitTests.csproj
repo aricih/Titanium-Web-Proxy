@@ -64,6 +64,7 @@
     <Compile Include="Decompression\DeflateDecompressionFixture.cs" />
     <Compile Include="Decompression\GZipDecompressionFixture.cs" />
     <Compile Include="Decompression\ZlibDecompressionFixture.cs" />
+    <Compile Include="Extensions\ByteArrayExtensionsFixture.cs" />
     <Compile Include="Helpers\GZipCompressedByteArray.cs" />
     <Compile Include="Helpers\IpAddress.cs" />
     <Compile Include="Helpers\UnitTestHelpers.cs" />

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 
 namespace Titanium.Web.Proxy.Extensions
 {
@@ -14,9 +15,31 @@ namespace Titanium.Web.Proxy.Extensions
         /// <returns></returns>
         public static T[] SubArray<T>(this T[] data, int index, int length)
         {
-            T[] result = new T[length];
+	        if (index < 0 || length < 0)
+	        {
+		        return null;
+	        }
+
+			if (index > data.Length - 1)
+			{
+				return null;
+			}
+
+			// Trim length parameter to prevent out of bound access
+			length = index + length > data.Length 
+				? length % data.Length
+				: length;
+
+			T[] result = new T[length];
+
+	        if (length == 0)
+	        {
+		        return result;
+	        }
+
             Array.Copy(data, index, result, 0, length);
-            return result;
+
+			return result;
         }
        
     }
