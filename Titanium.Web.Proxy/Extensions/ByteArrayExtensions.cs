@@ -27,7 +27,7 @@ namespace Titanium.Web.Proxy.Extensions
 
 			// Trim length parameter to prevent out of bound access
 			length = index + length > data.Length 
-				? length % data.Length
+				? length % data.Length + 1
 				: length;
 
 			T[] result = new T[length];

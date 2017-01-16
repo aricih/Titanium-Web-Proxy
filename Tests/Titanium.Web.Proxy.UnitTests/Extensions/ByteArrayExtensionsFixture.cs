@@ -20,7 +20,7 @@ namespace Titanium.Web.Proxy.UnitTests.Extensions
 				get
 				{
 					yield return new TestCaseData(Array.Empty<int>(), 0, 0)
-						.Returns(Array.Empty<int>())
+						.Returns(null)
 						.SetName("Handles empty array");
 
 					yield return new TestCaseData(Array.Empty<int>(), -1, 0)
@@ -32,7 +32,7 @@ namespace Titanium.Web.Proxy.UnitTests.Extensions
 						.SetName("Handles out of range index caused by index parameter");
 
 					yield return new TestCaseData(Array.Empty<int>(), 0, 10)
-						.Returns(Array.Empty<int>())
+						.Returns(null)
 						.SetName("Handles out of range index caused by length parameter with empty array");
 
 					yield return new TestCaseData(new [] { 0, 1, 2, 4, 8, 16, 32 }, 3, 10)
