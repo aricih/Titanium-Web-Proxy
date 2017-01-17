@@ -76,8 +76,13 @@ namespace Titanium.Web.Proxy.Extensions
         {
             while (true)
             {
-                var chuchkHead = await clientStreamReader.ReadLineAsync();
-                var chunkSize = int.Parse(chuchkHead, NumberStyles.HexNumber);
+                var chunkHead = await clientStreamReader.ReadLineAsync();
+                int chunkSize;
+
+                if (!int.TryParse(chunkHead, NumberStyles.HexNumber, NumberFormatInfo.InvariantInfo, out chunkSize))
+                {
+                    return;
+                }
 
                 if (chunkSize != 0)
                 {
@@ -93,6 +98,7 @@ namespace Titanium.Web.Proxy.Extensions
                 }
             }
         }
+
         /// <summary>
         /// Writes the byte array body to the given stream; optionally chunked
         /// </summary>
@@ -175,7 +181,12 @@ namespace Titanium.Web.Proxy.Extensions
             while (true)
             {
                 var chunkHead = await inStreamReader.ReadLineAsync();
-                var chunkSize = int.Parse(chunkHead, NumberStyles.HexNumber);
+                int chunkSize;
+
+                if (!int.TryParse(chunkHead, NumberStyles.HexNumber, NumberFormatInfo.InvariantInfo, out chunkSize))
+                {
+                    return;
+                }
 
                 if (chunkSize != 0)
                 {
@@ -199,6 +210,7 @@ namespace Titanium.Web.Proxy.Extensions
                 }
             }
         }
+        
         /// <summary>
         /// Copies the given input bytes to output stream chunked
         /// </summary>
@@ -216,6 +228,5 @@ namespace Titanium.Web.Proxy.Extensions
 
             await outStream.WriteAsync(ProxyConstants.ChunkEnd, 0, ProxyConstants.ChunkEnd.Length);
         }
-
     }
 }
