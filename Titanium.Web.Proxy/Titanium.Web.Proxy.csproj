@@ -87,7 +87,6 @@
     <Compile Include="Helpers\Firefox.cs" />
     <Compile Include="Helpers\SystemProxy.cs" />
     <Compile Include="Models\EndPoint.cs" />
-    <Compile Include="Extensions\TcpExtensions.cs" />
     <Compile Include="Http\Request.cs" />
     <Compile Include="Http\Response.cs" />
     <Compile Include="Models\ExternalProxy.cs" />
