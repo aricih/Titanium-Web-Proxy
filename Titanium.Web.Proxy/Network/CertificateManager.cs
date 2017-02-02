@@ -19,7 +19,7 @@ namespace Titanium.Web.Proxy.Network
         /// <summary>
         /// Cache dictionary
         /// </summary>
-        private readonly IDictionary<string, CachedCertificate> certificateCache;
+        private readonly ICertificateCache certificateCache;
 
         private Action<Exception> exceptionFunc;
 
@@ -37,7 +37,7 @@ namespace Titanium.Web.Proxy.Network
             Issuer = issuer;
             RootCertificateName = rootCertificateName;      
 
-            certificateCache = new ConcurrentDictionary<string, CachedCertificate>();
+            certificateCache = new CertificateCache();
         }
 
         internal X509Certificate2 GetRootCertificate()
@@ -104,7 +104,7 @@ namespace Titanium.Web.Proxy.Network
         {
             try
             {
-                if (certificateCache.ContainsKey(certificateName))
+	            if (certificateCache.ContainsKey(certificateName))
                 {
                     var cached = certificateCache[certificateName];
                     cached.LastAccess = DateTime.Now;
@@ -118,7 +118,7 @@ namespace Titanium.Web.Proxy.Network
             X509Certificate2 certificate = null;
             lock (string.Intern(certificateName))
             {
-                if (certificateCache.ContainsKey(certificateName) == false)
+                if (!certificateCache.ContainsKey(certificateName))
                 {
                     try
                     {
@@ -130,7 +130,7 @@ namespace Titanium.Web.Proxy.Network
                     }
                     if (certificate != null && !certificateCache.ContainsKey(certificateName))
                     {
-                        certificateCache.Add(certificateName, new CachedCertificate() { Certificate = certificate });
+	                    certificateCache.Add(certificateName, new CachedCertificate { Certificate = certificate });
                     }
                 }
                 else
@@ -143,8 +143,6 @@ namespace Titanium.Web.Proxy.Network
                     }
                 }
             }
-
-
 
             return certificate;
 

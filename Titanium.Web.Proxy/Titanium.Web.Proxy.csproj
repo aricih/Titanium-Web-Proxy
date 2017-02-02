@@ -74,8 +74,10 @@
     <Compile Include="Authentication\AuthenticationClient.cs" />
     <Compile Include="Models\HttpHeaderCollection.cs" />
     <Compile Include="Network\CachedCertificate.cs" />
+    <Compile Include="Network\CertificateCache.cs" />
     <Compile Include="Network\CertificateMaker.cs" />
     <Compile Include="Authentication\ICredentialProvider.cs" />
+    <Compile Include="Network\ICertificateCache.cs" />
     <Compile Include="Network\ProxyClient.cs" />
     <Compile Include="Exceptions\BodyNotFoundException.cs" />
     <Compile Include="Exceptions\ProxyAuthorizationException.cs" />
