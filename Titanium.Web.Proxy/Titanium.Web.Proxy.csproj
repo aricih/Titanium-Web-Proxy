@@ -110,6 +110,7 @@
     <Compile Include="Extensions\StreamExtensions.cs" />
     <Compile Include="Http\Responses\OkResponse.cs" />
     <Compile Include="Http\Responses\RedirectResponse.cs" />
+    <Compile Include="Shared\CompressionConstants.cs" />
     <Compile Include="Shared\ProxyConstants.cs" />
     <Compile Include="Tcp\TcpRow.cs" />
     <Compile Include="Tcp\TcpTable.cs" />

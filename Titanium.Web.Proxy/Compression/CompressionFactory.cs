@@ -1,4 +1,6 @@
-﻿namespace Titanium.Web.Proxy.Compression
+﻿using Titanium.Web.Proxy.Shared;
+
+namespace Titanium.Web.Proxy.Compression
 {
     /// <summary>
     ///  A factory to generate the compression methods based on the type of compression
@@ -9,11 +11,11 @@
         {
             switch (type)
             {
-                case "gzip":
+                case CompressionConstants.GZipCompression:
                     return new GZipCompression();
-                case "deflate":
+                case CompressionConstants.DeflateCompression:
                     return new DeflateCompression();
-                case "zlib":
+                case CompressionConstants.ZlibCompression:
                     return new ZlibCompression();
                 default:
                     return null;
