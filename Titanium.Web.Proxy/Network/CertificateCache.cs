@@ -13,15 +13,34 @@ namespace Titanium.Web.Proxy.Network
 	internal class CertificateCache : ConcurrentDictionary<string, CachedCertificate>, ICertificateCache
 	{
 		/// <summary>
+		/// Gets the common key.
+		/// </summary>
+		/// <param name="key">The key.</param>
+		/// <returns>Common key for the cache entry.</returns>
+		private string GetCommonKey(string key)
+		{
+			var commonKey = Keys.FirstOrDefault(key.EndsWith);
+
+			if (!string.IsNullOrEmpty(commonKey))
+			{
+				return commonKey;
+			}
+
+			commonKey = Keys.FirstOrDefault(existingKey => existingKey.EndsWith(key));
+
+			return !string.IsNullOrEmpty(commonKey) ? commonKey : key;
+		}
+
+		/// <summary>
 		/// Determines whether the <see cref="T:System.Collections.Concurrent.ConcurrentDictionary`2" /> contains the specified key.
 		/// </summary>
 		/// <param name="key">The key to locate in the <see cref="T:System.Collections.Concurrent.ConcurrentDictionary`2" />.</param>
 		/// <returns>true if the <see cref="T:System.Collections.Concurrent.ConcurrentDictionary`2" /> contains an element with the specified key; otherwise, false.</returns>
 		private new bool ContainsKey(string key)
 		{
-			return base.ContainsKey(key)
-				   || Keys.FirstOrDefault(key.EndsWith) != null
-				   || Keys.FirstOrDefault(existingKey => existingKey.EndsWith(key)) != null;
+			return base.ContainsKey(key) 
+				|| Keys.FirstOrDefault(key.EndsWith) != null
+				|| Keys.FirstOrDefault(existingKey => existingKey.EndsWith(key)) != null;
 		}
 
 		/// <summary>
@@ -37,6 +56,18 @@ namespace Titanium.Web.Proxy.Network
 			}
 
 			TryAdd(key, certificate);
+		}
+
+		public new CachedCertificate this[string key]
+		{
+			get
+			{
+				return base[GetCommonKey(key)];
+			}
+			set
+			{
+				base[GetCommonKey(key)] = value;
+			}
 		}
 
 		/// <summary>

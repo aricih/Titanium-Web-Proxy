@@ -21,5 +21,12 @@ namespace Titanium.Web.Proxy.Network
 		/// <param name="key">The key.</param>
 		/// <param name="certificate">The certificate.</param>
 		new void Add(string key, CachedCertificate certificate);
+
+		/// <summary>
+		/// Gets or sets the <see cref="CachedCertificate"/> with the specified key.
+		/// </summary>
+		/// <param name="key">The key.</param>
+		/// <returns>CachedCertificate instance.</returns>
+		new CachedCertificate this[string key] { get; set; }
 	}
 }

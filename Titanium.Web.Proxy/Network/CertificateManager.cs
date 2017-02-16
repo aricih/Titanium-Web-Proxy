@@ -129,18 +129,11 @@ namespace Titanium.Web.Proxy.Network
 		/// <returns>X509Certificate2.</returns>
 		internal virtual X509Certificate2 CreateCertificate(string certificateName, bool isRootCertificate)
 		{
-			try
+			if (_certificateCache.ContainsKey(certificateName))
 			{
-				if (_certificateCache.ContainsKey(certificateName))
-				{
-					var cached = _certificateCache[certificateName];
-					cached.LastAccess = DateTime.Now;
-					return cached.Certificate;
-				}
-			}
-			catch
-			{
-
+				var cached = _certificateCache[certificateName];
+				cached.LastAccess = DateTime.Now;
+				return cached.Certificate;
 			}
 
 			X509Certificate2 certificate = null;
