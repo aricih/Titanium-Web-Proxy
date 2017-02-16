@@ -58,6 +58,11 @@ namespace Titanium.Web.Proxy.Network
 			TryAdd(key, certificate);
 		}
 
+		/// <summary>
+		/// Gets or sets the <see cref="CachedCertificate"/> with the specified key.
+		/// </summary>
+		/// <param name="key">The key.</param>
+		/// <returns>CachedCertificate instance.</returns>
 		public new CachedCertificate this[string key]
 		{
 			get
