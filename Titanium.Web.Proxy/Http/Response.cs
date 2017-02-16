@@ -7,248 +7,242 @@ using System;
 
 namespace Titanium.Web.Proxy.Http
 {
-    /// <summary>
-    /// Http(s) response object
-    /// </summary>
-    public class Response
-    {
-        /// <summary>
-        /// Gets or sets the response status code.
-        /// </summary>
-        public string ResponseStatusCode { get; set; }
+	/// <summary>
+	/// Http(s) response object
+	/// </summary>
+	public class Response
+	{
+		/// <summary>
+		/// Gets or sets the response status code.
+		/// </summary>
+		public string ResponseStatusCode { get; set; }
 
-        /// <summary>
-        /// Gets or sets the response status description.
-        /// </summary>
-        public string ResponseStatusDescription { get; set; }
+		/// <summary>
+		/// Gets or sets the response status description.
+		/// </summary>
+		public string ResponseStatusDescription { get; set; }
 
-        /// <summary>
-        /// Gets the response done timestamp.
-        /// </summary>
-        public DateTime ResponseReceived { get; internal set; }
+		/// <summary>
+		/// Gets the response done timestamp.
+		/// </summary>
+		public DateTime ResponseReceived { get; internal set; }
 
-        internal Encoding Encoding => this.GetResponseCharacterEncoding();
+		internal Encoding Encoding => this.GetResponseCharacterEncoding();
 
-        /// <summary>
-        /// Content encoding for this response
-        /// </summary>
-        internal string ContentEncoding
-        {
-            get
-            {
-                var hasHeader = ResponseHeaders.ContainsKey("content-encoding");
+		/// <summary>
+		/// Content encoding for this response
+		/// </summary>
+		internal string ContentEncoding
+		{
+			get
+			{
+				var hasHeader = ResponseHeaders.ContainsKey("content-encoding");
 
-                if (hasHeader)
-                {
-                    var header = ResponseHeaders["content-encoding"];
+				if (!hasHeader)
+				{
+					return null;
+				}
 
-                    return header.Value.Trim();
-                }
+				var header = ResponseHeaders["content-encoding"];
 
-                return null;
-            }
-        }
+				return header.Value.Trim();
+			}
+		}
 
-        /// <summary>
-        /// Gets or sets the HTTP version.
-        /// </summary>
-        public Version HttpVersion { get; set; }
+		/// <summary>
+		/// Gets or sets the HTTP version.
+		/// </summary>
+		public Version HttpVersion { get; set; }
 
-        /// <summary>
-        /// Keep the connection alive?
-        /// </summary>
-        internal bool ResponseKeepAlive
-        {
-            get
-            {
-                var hasHeader = ResponseHeaders.ContainsKey("connection");
+		/// <summary>
+		/// Keep the connection alive?
+		/// </summary>
+		internal bool ResponseKeepAlive
+		{
+			get
+			{
+				var hasHeader = ResponseHeaders.ContainsKey("connection");
 
-                if (hasHeader)
-                {
-                    var header = ResponseHeaders["connection"];
+				if (!hasHeader)
+				{
+					return true;
+				}
 
-                    if (header.Value.ToLower().Contains("close"))
-                    {
-                        return false;
-                    }
-                }
+				var header = ResponseHeaders["connection"];
 
-                return true;
+				return !header.Value.ToLower().Contains("close");
+			}
+		}
 
-            }
-        }
+		/// <summary>
+		/// Content type of this response
+		/// </summary>
+		public string ContentType
+		{
+			get
+			{
+				var hasHeader = ResponseHeaders.ContainsKey("content-type");
 
-        /// <summary>
-        /// Content type of this response
-        /// </summary>
-        public string ContentType
-        {
-            get
-            {
-                var hasHeader = ResponseHeaders.ContainsKey("content-type");
+				if (!hasHeader)
+				{
+					return null;
+				}
 
-                if (hasHeader)
-                {
-                    var header = ResponseHeaders["content-type"];
+				var header = ResponseHeaders["content-type"];
 
-                    return header.Value;
-                }
+				return header.Value;
+			}
+		}
 
-                return null;
+		/// <summary>
+		/// Length of response body
+		/// </summary>
+		internal long ContentLength
+		{
+			get
+			{
+				var hasHeader = ResponseHeaders.ContainsKey("content-length");
 
-            }
-        }
+				if (hasHeader == false)
+				{
+					return -1;
+				}
 
-        /// <summary>
-        /// Length of response body
-        /// </summary>
-        internal long ContentLength
-        {
-            get
-            {
-                var hasHeader = ResponseHeaders.ContainsKey("content-length");
+				var header = ResponseHeaders["content-length"];
 
-                if (hasHeader == false)
-                {
-                    return -1;
-                }
+				long contentLen;
+				long.TryParse(header.Value, out contentLen);
+				if (contentLen >= 0)
+				{
+					return contentLen;
+				}
 
-                var header = ResponseHeaders["content-length"];
+				return -1;
 
-                long contentLen;
-                long.TryParse(header.Value, out contentLen);
-                if (contentLen >= 0)
-                {
-                    return contentLen;
-                }
+			}
+			set
+			{
+				var hasHeader = ResponseHeaders.ContainsKey("content-length");
 
-                return -1;
+				if (value >= 0)
+				{
+					if (hasHeader)
+					{
+						var header = ResponseHeaders["content-length"];
+						header.Value = value.ToString();
+					}
+					else
+					{
+						ResponseHeaders.Add("content-length", new HttpHeader("content-length", value.ToString()));
+					}
 
-            }
-            set
-            {
-                var hasHeader = ResponseHeaders.ContainsKey("content-length");
+					IsChunked = false;
+				}
+				else
+				{
+					if (hasHeader)
+					{
+						ResponseHeaders.Remove("content-length");
+					}
+				}
+			}
+		}
 
-                if (value >= 0)
-                {
-                    if (hasHeader)
-                    {
-                        var header = ResponseHeaders["content-length"];
-                        header.Value = value.ToString();
-                    }
-                    else
-                    {
-                        ResponseHeaders.Add("content-length", new HttpHeader("content-length", value.ToString()));
-                    }
+		/// <summary>
+		/// Response transfer-encoding is chunked?
+		/// </summary>
+		internal bool IsChunked
+		{
+			get
+			{
+				var hasHeader = ResponseHeaders.ContainsKey("transfer-encoding");
 
-                    IsChunked = false;
-                }
-                else
-                {
-                    if (hasHeader)
-                    {
-                        ResponseHeaders.Remove("content-length");
-                    }
-                }
-            }
-        }
+				if (!hasHeader)
+				{
+					return false;
+				}
 
-        /// <summary>
-        /// Response transfer-encoding is chunked?
-        /// </summary>
-        internal bool IsChunked
-        {
-            get
-            {
-                var hasHeader = ResponseHeaders.ContainsKey("transfer-encoding");
+				var header = ResponseHeaders["transfer-encoding"];
 
-                if (hasHeader)
-                {
-                    var header = ResponseHeaders["transfer-encoding"];
+				return header.Value.ToLower().Contains("chunked");
+			}
+			set
+			{
+				var hasHeader = ResponseHeaders.ContainsKey("transfer-encoding");
 
-                    if (header.Value.ToLower().Contains("chunked"))
-                    {
-                        return true;
-                    }
-                }
+				if (value)
+				{
+					if (hasHeader)
+					{
+						var header = ResponseHeaders["transfer-encoding"];
+						header.Value = "chunked";
+					}
+					else
+					{
+						ResponseHeaders.Add("transfer-encoding", new HttpHeader("transfer-encoding", "chunked"));
+					}
 
-                return false;
+					ContentLength = -1;
+				}
+				else
+				{
+					if (hasHeader)
+					{
+						ResponseHeaders.Remove("transfer-encoding");
+					}
 
-            }
-            set
-            {
-                var hasHeader = ResponseHeaders.ContainsKey("transfer-encoding");
+				}
 
-                if (value)
-                {
-                    if (hasHeader)
-                    {
-                        var header = ResponseHeaders["transfer-encoding"];
-                        header.Value = "chunked";
-                    }
-                    else
-                    {
-                        ResponseHeaders.Add("transfer-encoding", new HttpHeader("transfer-encoding", "chunked"));
-                    }
+			}
+		}
 
-                    ContentLength = -1;
-                }
-                else
-                {
-                    if (hasHeader)
-                    {
-                        ResponseHeaders.Remove("transfer-encoding");
-                    }
+		/// <summary>
+		/// Collection of all response headers
+		/// </summary>
+		public Dictionary<string, HttpHeader> ResponseHeaders { get; set; }
 
-                }
-
-            }
-        }
-
-        /// <summary>
-        /// Collection of all response headers
-        /// </summary>
-        public Dictionary<string, HttpHeader> ResponseHeaders { get; set; }
-
-        /// <summary>
-        /// Non Unique headers
-        /// </summary>
-        public Dictionary<string, List<HttpHeader>> NonUniqueResponseHeaders { get; set; }
+		/// <summary>
+		/// Non Unique headers
+		/// </summary>
+		public Dictionary<string, List<HttpHeader>> NonUniqueResponseHeaders { get; set; }
 
 
-        /// <summary>
-        /// Response network stream
-        /// </summary>
-        public Stream ResponseStream { get; set; }
+		/// <summary>
+		/// Response network stream
+		/// </summary>
+		public Stream ResponseStream { get; set; }
 
-        /// <summary>
-        /// response body contenst as byte array
-        /// </summary>
-        internal byte[] ResponseBody { get; set; }
+		/// <summary>
+		/// response body contenst as byte array
+		/// </summary>
+		internal byte[] ResponseBody { get; set; }
 
-        /// <summary>
-        /// response body as string
-        /// </summary>
-        internal string ResponseBodyString { get; set; }
+		/// <summary>
+		/// response body as string
+		/// </summary>
+		internal string ResponseBodyString { get; set; }
 
-        internal bool ResponseBodyRead { get; set; }
-        internal bool ResponseLocked { get; set; }
+		internal bool ResponseBodyRead { get; set; }
+		internal bool ResponseLocked { get; set; }
 
-        /// <summary>
-        /// Is response 100-continue
-        /// </summary>
-        public bool Is100Continue { get; internal set; }
+		/// <summary>
+		/// Is response 100-continue
+		/// </summary>
+		public bool Is100Continue { get; internal set; }
 
-        /// <summary>
-        /// expectation failed returned by server?
-        /// </summary>
-        public bool ExpectationFailed { get; internal set; }
+		/// <summary>
+		/// expectation failed returned by server?
+		/// </summary>
+		public bool ExpectationFailed { get; internal set; }
 
-        public Response()
-        {
-            this.ResponseHeaders = new Dictionary<string, HttpHeader>(StringComparer.OrdinalIgnoreCase);
-            this.NonUniqueResponseHeaders = new Dictionary<string, List<HttpHeader>>(StringComparer.OrdinalIgnoreCase);
-        }
-    }
+		/// <summary>
+		/// Initializes a new instance of the <see cref="Response"/> class.
+		/// </summary>
+		public Response()
+		{
+			ResponseHeaders = new Dictionary<string, HttpHeader>(StringComparer.OrdinalIgnoreCase);
+			NonUniqueResponseHeaders = new Dictionary<string, List<HttpHeader>>(StringComparer.OrdinalIgnoreCase);
+		}
+	}
 
 }

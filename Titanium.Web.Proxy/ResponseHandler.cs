@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Security;
+using System.Threading;
 using Titanium.Web.Proxy.EventArguments;
 using Titanium.Web.Proxy.Models;
 using Titanium.Web.Proxy.Compression;
@@ -16,305 +17,306 @@ using Titanium.Web.Proxy.Helpers;
 
 namespace Titanium.Web.Proxy
 {
-    /// <summary>
-    /// Handle the response from server
-    /// </summary>
-    partial class ProxyServer
-    {
-        public async Task<bool> HandleAuthenticationRequired(SessionEventArgs args)
-        {
-            var isRequestReplayNeeded = false;
-            HttpStatusCode httpStatusCode;
+	/// <summary>
+	/// Handle the response from server
+	/// </summary>
+	public partial class ProxyServer
+	{
+		/// <summary>
+		/// Handles the authentication required.
+		/// </summary>
+		/// <param name="args">The <see cref="SessionEventArgs" /> instance containing the event data.</param>
+		/// <param name="cancellationToken">The cancellation token.</param>
+		/// <returns>Whether authentication is requred for the current session or not.</returns>
+		public async Task<bool> HandleAuthenticationRequired(SessionEventArgs args, CancellationToken cancellationToken = default(CancellationToken))
+		{
+			HttpStatusCode httpStatusCode;
 
-            // Status code could not be parsed, no need to replay the request
-            if (!Enum.TryParse(args.WebSession.Response.ResponseStatusCode, out httpStatusCode))
-            {
-                return isRequestReplayNeeded;
-            }
+			// Status code could not be parsed, no need to replay the request
+			if (!Enum.TryParse(args.WebSession.Response.ResponseStatusCode, out httpStatusCode))
+			{
+				return false;
+			}
 
-            isRequestReplayNeeded = httpStatusCode == HttpStatusCode.Unauthorized
-                || httpStatusCode == HttpStatusCode.ProxyAuthenticationRequired;
+			var isRequestReplayNeeded = httpStatusCode == HttpStatusCode.Unauthorized 
+				|| httpStatusCode == HttpStatusCode.ProxyAuthenticationRequired;
 
-            var credentialHeader =
-                args.WebSession.Response.ResponseHeaders.Values.FirstOrDefault(
-                    header => header.Name.EndsWith("-Authenticate", StringComparison.CurrentCultureIgnoreCase));
+			var credentialHeader =
+				args.WebSession.Response.ResponseHeaders.Values.FirstOrDefault(
+					header => header.Name.EndsWith("-Authenticate", StringComparison.CurrentCultureIgnoreCase));
 
-            // Request must be authenticated
-            if (isRequestReplayNeeded)
-            {
-                var isProxified = (UpStreamHttpProxy != null && args.WebSession.Request.Host != UpStreamHttpProxy.HostName)
-                    || (UpStreamHttpsProxy != null && args.WebSession.Request.Host != UpStreamHttpsProxy.HostName);
+			// Request must be authenticated
+			if (isRequestReplayNeeded)
+			{
+				var isProxified = (UpStreamHttpProxy != null && args.WebSession.Request.Host != UpStreamHttpProxy.HostName)
+					|| (UpStreamHttpsProxy != null && args.WebSession.Request.Host != UpStreamHttpsProxy.HostName);
 
-                var upstreamProxy = isProxified ? (args.IsHttps ? UpStreamHttpsProxy : UpStreamHttpProxy) : null;
+				var upstreamProxy = isProxified ? (args.IsHttps ? UpStreamHttpsProxy : UpStreamHttpProxy) : null;
 
-                var credentialProvider = (isProxified && httpStatusCode != HttpStatusCode.Unauthorized)
-                    ? (ICredentialProvider) new ProxyCredentialProvider(upstreamProxy)
-                    : new HttpCredentialProvider(args.WebSession.Request.RequestUri.Host);
+				var credentialProvider = (isProxified && httpStatusCode != HttpStatusCode.Unauthorized)
+					? (ICredentialProvider)new ProxyCredentialProvider(upstreamProxy)
+					: new HttpCredentialProvider(args.WebSession.Request.RequestUri.Host);
 
-                // If we're stuck at same http status code instead of preauthentication
-                // then preauthentication is failing most likely because of an expired authorization token in cache
-                // so set preauthentication failed flag to invalidate corresponding cache entry
-                var preAuthenticationFailed = args.WebSession.ServerConnection.PreAuthenticateUsed
-                    && args.LastStatusCode == httpStatusCode;
-                
-                await AuthenticationClient.Authenticate(
-                    args.WebSession.Request.RequestUri,
-                    credentialHeader,
-                    credentialProvider,
-                    args.WebSession.Request.RequestHeaders,
-                    preAuthenticationFailed,
-                    (args.ProxyClient.ClientStream as SslStream)?.TransportContext);
-            }
+				// If we're stuck at same http status code instead of preauthentication
+				// then preauthentication is failing most likely because of an expired authorization token in cache
+				// so set preauthentication failed flag to invalidate corresponding cache entry
+				var preAuthenticationFailed = args.WebSession.ServerConnection.PreAuthenticateUsed
+					&& args.LastStatusCode == httpStatusCode;
 
-            // Update last status code on session
-            args.LastStatusCode = httpStatusCode;
+				await AuthenticationClient.Authenticate(
+					args.WebSession.Request.RequestUri,
+					credentialHeader,
+					credentialProvider,
+					args.WebSession.Request.RequestHeaders,
+					preAuthenticationFailed,
+					(args.ProxyClient.ClientStream as SslStream)?.TransportContext,
+					cancellationToken: cancellationToken);
+			}
 
-            return isRequestReplayNeeded;
-        }
+			// Update last status code on session
+			args.LastStatusCode = httpStatusCode;
 
-        //Called asynchronously when a request was successfully and we received the response
-        public async Task HandleHttpSessionResponse(SessionEventArgs args)
-        {
-            try
-            {
-                // Read response & headers from server
-                await args.WebSession.ReceiveResponse(args.ReRequest);
+			return isRequestReplayNeeded;
+		}
 
-                args.WebSession.Response.ResponseReceived = DateTime.Now;
+		/// <summary>
+		/// Handles the HTTP session response.
+		/// </summary>
+		/// <param name="args">The <see cref="SessionEventArgs" /> instance containing the event data.</param>
+		/// <param name="cancellationToken">The cancellation token.</param>
+		public async Task HandleHttpSessionResponse(SessionEventArgs args, CancellationToken cancellationToken = default(CancellationToken))
+		{
+			try
+			{
+				// Read response & headers from server
+				await args.WebSession.ReceiveResponse(args.ReRequest, cancellationToken: cancellationToken);
 
-                if (!args.WebSession.Response.ResponseBodyRead)
-                {
-                    args.WebSession.Response.ResponseStream = args.WebSession.ServerConnection.Stream;
-                }
+				args.WebSession.Response.ResponseReceived = DateTime.Now;
 
-                args.ReRequest = await HandleAuthenticationRequired(args);
+				if (!args.WebSession.Response.ResponseBodyRead)
+				{
+					args.WebSession.Response.ResponseStream = args.WebSession.ServerConnection.Stream;
+				}
 
-                //If user requested call back then do it
-                if (BeforeResponse != null && !args.WebSession.Response.ResponseLocked)
-                {
-                    Delegate[] invocationList = BeforeResponse.GetInvocationList();
-                    Task[] handlerTasks = new Task[invocationList.Length];
+				args.ReRequest = await HandleAuthenticationRequired(args, cancellationToken: cancellationToken);
 
-                    for (int i = 0; i < invocationList.Length; i++)
-                    {
-                        handlerTasks[i] = ((Func<object, SessionEventArgs, Task>)invocationList[i])(this, args);
-                    }
+				//If user requested call back then do it
+				if (BeforeResponse != null && !args.WebSession.Response.ResponseLocked)
+				{
+					var invocationList = BeforeResponse.GetInvocationList();
+					var handlerTasks = new Task[invocationList.Length];
 
-                    await Task.WhenAll(handlerTasks);
-                }
+					for (var i = 0; i < invocationList.Length; i++)
+					{
+						if (cancellationToken.IsCancellationRequested)
+						{
+							return;
+						}
 
-                if (args.ReRequest)
-                {
-                    await HandleHttpSessionRequestInternal(null, args, UpStreamHttpProxy, UpStreamHttpsProxy, true).ConfigureAwait(false);
-                    return;
-                }
+						handlerTasks[i] = ((Func<object, SessionEventArgs, CancellationToken, Task>)invocationList[i])(this, args, cancellationToken);
+					}
 
-                args.WebSession.Response.ResponseLocked = true;
+					await Task.WhenAll(handlerTasks);
+				}
 
-                //Write back to client 100-conitinue response if that's what server returned
-                if (args.WebSession.Response.Is100Continue)
-                {
-                    await WriteResponseStatus(args.WebSession.Response.HttpVersion, "100",
-                            "Continue", args.ProxyClient.ClientStreamWriter);
-                    await args.ProxyClient.ClientStreamWriter.WriteLineAsync();
-                }
-                else if (args.WebSession.Response.ExpectationFailed)
-                {
-                    await WriteResponseStatus(args.WebSession.Response.HttpVersion, "417",
-                            "Expectation Failed", args.ProxyClient.ClientStreamWriter);
-                    await args.ProxyClient.ClientStreamWriter.WriteLineAsync();
-                }
+				if (args.ReRequest)
+				{
+					await HandleHttpSessionRequestInternal(null, args, UpStreamHttpProxy, UpStreamHttpsProxy, true, cancellationToken: cancellationToken).ConfigureAwait(false);
+					return;
+				}
 
-                //Write back response status to client
-                await WriteResponseStatus(args.WebSession.Response.HttpVersion, args.WebSession.Response.ResponseStatusCode,
-                              args.WebSession.Response.ResponseStatusDescription, args.ProxyClient.ClientStreamWriter);
+				args.WebSession.Response.ResponseLocked = true;
 
-                if (args.WebSession.Response.ResponseBodyRead)
-                {
-                    var isChunked = args.WebSession.Response.IsChunked;
-                    var contentEncoding = args.WebSession.Response.ContentEncoding;
+				//Write back to client 100-conitinue response if that's what server returned
+				if (args.WebSession.Response.Is100Continue)
+				{
+					await WriteResponseStatus(args.WebSession.Response.HttpVersion, "100",
+							"Continue", args.ProxyClient.ClientStreamWriter);
+					await args.ProxyClient.ClientStreamWriter.WriteLineAsync();
+				}
+				else if (args.WebSession.Response.ExpectationFailed)
+				{
+					await WriteResponseStatus(args.WebSession.Response.HttpVersion, "417",
+							"Expectation Failed", args.ProxyClient.ClientStreamWriter);
+					await args.ProxyClient.ClientStreamWriter.WriteLineAsync();
+				}
 
-                    if (contentEncoding != null)
-                    {
-                        args.WebSession.Response.ResponseBody = await GetCompressedResponseBody(contentEncoding, args.WebSession.Response.ResponseBody);
+				//Write back response status to client
+				await WriteResponseStatus(args.WebSession.Response.HttpVersion, args.WebSession.Response.ResponseStatusCode,
+							  args.WebSession.Response.ResponseStatusDescription, args.ProxyClient.ClientStreamWriter);
 
-                        if (isChunked == false)
-                        {
-                            args.WebSession.Response.ContentLength = args.WebSession.Response.ResponseBody.Length;
-                        }
-                        else
-                        {
-                            args.WebSession.Response.ContentLength = -1;
-                        }
-                    }
+				if (args.WebSession.Response.ResponseBodyRead)
+				{
+					var isChunked = args.WebSession.Response.IsChunked;
+					var contentEncoding = args.WebSession.Response.ContentEncoding;
 
-                    await WriteResponseHeaders(args.ProxyClient.ClientStreamWriter, args.WebSession.Response);
-                    await args.ProxyClient.ClientStream.WriteResponseBody(args.WebSession.Response.ResponseBody, isChunked);
-                }
-                else
-                {
-                    await WriteResponseHeaders(args.ProxyClient.ClientStreamWriter, args.WebSession.Response);
+					if (contentEncoding != null)
+					{
+						args.WebSession.Response.ResponseBody = await GetCompressedResponseBody(contentEncoding, args.WebSession.Response.ResponseBody, cancellationToken: cancellationToken);
 
-                    //Write body only if response is chunked or content length >0
-                    //Is none are true then check if connection:close header exist, if so write response until server or client terminates the connection
-                    if (args.WebSession.Response.IsChunked || args.WebSession.Response.ContentLength > 0
-                        || !args.WebSession.Response.ResponseKeepAlive)
-                    {
-                        await args.WebSession.ServerConnection.StreamReader
-                            .WriteResponseBody(BUFFER_SIZE, args.ProxyClient.ClientStream, args.WebSession.Response.IsChunked,
-                            args.WebSession.Response.ContentLength);
-                    }
-                    //write response if connection:keep-alive header exist and when version is http/1.0
-                    //Because in Http 1.0 server can return a response without content-length (expectation being client would read until end of stream)
-                    else if (args.WebSession.Response.ResponseKeepAlive && args.WebSession.Response.HttpVersion.Minor == 0)
-                    {
-                        await args.WebSession.ServerConnection.StreamReader
-                            .WriteResponseBody(BUFFER_SIZE, args.ProxyClient.ClientStream, args.WebSession.Response.IsChunked,
-                            args.WebSession.Response.ContentLength);
-                    }
-                }
+						if (isChunked == false)
+						{
+							args.WebSession.Response.ContentLength = args.WebSession.Response.ResponseBody.Length;
+						}
+						else
+						{
+							args.WebSession.Response.ContentLength = -1;
+						}
+					}
 
-                await args.ProxyClient.ClientStream.FlushAsync();
+					await WriteResponseHeaders(args.ProxyClient.ClientStreamWriter, args.WebSession.Response);
+					await args.ProxyClient.ClientStream.WriteResponseBody(args.WebSession.Response.ResponseBody, isChunked, cancellationToken: cancellationToken);
+				}
+				else
+				{
+					await WriteResponseHeaders(args.ProxyClient.ClientStreamWriter, args.WebSession.Response);
 
-            }
-            catch (Exception e)
-            {
-                ExceptionFunc(new ProxyHttpException("Error occured wilst handling session response", e, args));
-                Dispose(args.ProxyClient.ClientStream, args.ProxyClient.ClientStreamReader,
-                    args.ProxyClient.ClientStreamWriter, args);
-                throw;
-            }
-            finally
-            {
-                // Remove cache entry if request body is recorded
-                if (args.WebSession.Request.HasBody && args.WebSession.Request.RecordBody)
-                {
-                    string recordedBody;
-                    RequestBodyCache.Value.TryRemove(args.WebSession.RequestId, out recordedBody);
-                }
+					//Write body only if response is chunked or content length >0
+					//Is none are true then check if connection:close header exist, if so write response until server or client terminates the connection
+					if (args.WebSession.Response.IsChunked || args.WebSession.Response.ContentLength > 0
+						|| !args.WebSession.Response.ResponseKeepAlive)
+					{
+						await args.WebSession.ServerConnection.StreamReader
+							.WriteResponseBody(BufferSize, args.ProxyClient.ClientStream, args.WebSession.Response.IsChunked, args.WebSession.Response.ContentLength, cancellationToken: cancellationToken);
+					}
+					//write response if connection:keep-alive header exist and when version is http/1.0
+					//Because in Http 1.0 server can return a response without content-length (expectation being client would read until end of stream)
+					else if (args.WebSession.Response.ResponseKeepAlive && args.WebSession.Response.HttpVersion.Minor == 0)
+					{
+						await args.WebSession.ServerConnection.StreamReader
+							.WriteResponseBody(BufferSize, args.ProxyClient.ClientStream, args.WebSession.Response.IsChunked, args.WebSession.Response.ContentLength, cancellationToken: cancellationToken);
+					}
+				}
 
-                args.Dispose();
-            }
-        }
+				await args.ProxyClient.ClientStream.FlushAsync(cancellationToken: cancellationToken);
 
-        /// <summary>
-        /// get the compressed response body from give response bytes
-        /// </summary>
-        /// <param name="encodingType"></param>
-        /// <param name="responseBodyStream"></param>
-        /// <returns></returns>
-        private async Task<byte[]> GetCompressedResponseBody(string encodingType, byte[] responseBodyStream)
-        {
-            var compressionFactory = new CompressionFactory();
-            var compressor = compressionFactory.Create(encodingType);
-            return await compressor.Compress(responseBodyStream);
-        }
+			}
+			catch (Exception e)
+			{
+				ExceptionFunc(new ProxyHttpException("Error occured wilst handling session response", e, args));
+				Dispose(args.ProxyClient.ClientStream, args.ProxyClient.ClientStreamReader,
+					args.ProxyClient.ClientStreamWriter, args);
+				throw;
+			}
+			finally
+			{
+				// Remove cache entry if request body is recorded
+				if (args.WebSession.Request.HasBody && args.WebSession.Request.RecordBody)
+				{
+					string recordedBody;
+					RequestBodyCache.Value.TryRemove(args.WebSession.RequestId, out recordedBody);
+				}
 
-        /// <summary>
-        /// Write response status
-        /// </summary>
-        /// <param name="version"></param>
-        /// <param name="code"></param>
-        /// <param name="description"></param>
-        /// <param name="responseWriter"></param>
-        /// <returns></returns>
-        private async Task WriteResponseStatus(Version version, string code, string description,
-            StreamWriter responseWriter)
-        {
-            await responseWriter.WriteLineAsync($"HTTP/{version.Major}.{version.Minor} {code} {description}");
-        }
+				args.Dispose();
+			}
+		}
 
-        /// <summary>
-        /// Write response headers to client
-        /// </summary>
-        /// <param name="responseWriter"></param>
-        /// <param name="headers"></param>
-        /// <returns></returns>
-        private async Task WriteResponseHeaders(StreamWriter responseWriter, Response response)
-        {
-            FixProxyHeaders(response.ResponseHeaders);
+		/// <summary>
+		/// get the compressed response body from give response bytes
+		/// </summary>
+		/// <param name="encodingType">Type of the encoding.</param>
+		/// <param name="responseBodyStream">The response body stream.</param>
+		/// <param name="cancellationToken">The cancellation token.</param>
+		/// <returns>Compressed response body as byte array.</returns>
+		private async Task<byte[]> GetCompressedResponseBody(string encodingType, byte[] responseBodyStream, CancellationToken cancellationToken = default(CancellationToken))
+		{
+			var compressionFactory = new CompressionFactory();
+			var compressor = compressionFactory.Create(encodingType);
+			return await compressor.Compress(responseBodyStream, cancellationToken: cancellationToken);
+		}
 
-            foreach (var header in response.ResponseHeaders)
-            {
-                await responseWriter.WriteLineAsync(header.Value.ToString());
-            }
+		/// <summary>
+		/// Write response status
+		/// </summary>
+		/// <param name="version"></param>
+		/// <param name="code"></param>
+		/// <param name="description"></param>
+		/// <param name="responseWriter"></param>
+		/// <returns></returns>
+		private async Task WriteResponseStatus(Version version, string code, string description, StreamWriter responseWriter)
+		{
+			await responseWriter.WriteLineAsync($"HTTP/{version.Major}.{version.Minor} {code} {description}");
+		}
 
-            //write non unique request headers
-            foreach (var headerItem in response.NonUniqueResponseHeaders)
-            {
-                var headers = headerItem.Value;
-                foreach (var header in headers)
-                {
-                    await responseWriter.WriteLineAsync(header.ToString());
-                }
-            }
+		/// <summary>
+		/// Write response headers to client
+		/// </summary>
+		/// <param name="responseWriter">The response writer.</param>
+		/// <param name="response">The response.</param>
+		private async Task WriteResponseHeaders(StreamWriter responseWriter, Response response)
+		{
+			FixProxyHeaders(response.ResponseHeaders);
 
+			foreach (var header in response.ResponseHeaders)
+			{
+				await responseWriter.WriteLineAsync(header.Value.ToString());
+			}
 
-            await responseWriter.WriteLineAsync();
-            await responseWriter.FlushAsync();
-        }
+			//write non unique request headers
+			foreach (var headerItem in response.NonUniqueResponseHeaders)
+			{
+				var headers = headerItem.Value;
+				foreach (var header in headers)
+				{
+					await responseWriter.WriteLineAsync(header.ToString());
+				}
+			}
 
-        /// <summary>
-        /// Fix proxy specific headers
-        /// </summary>
-        /// <param name="headers"></param>
-        private void FixProxyHeaders(Dictionary<string, HttpHeader> headers)
-        {
-            //If proxy-connection close was returned inform to close the connection
-            var hasProxyHeader = headers.ContainsKey("proxy-connection");
-            var hasConnectionheader = headers.ContainsKey("connection");
+			await responseWriter.WriteLineAsync();
+			await responseWriter.FlushAsync();
+		}
 
-            if (hasProxyHeader)
-            {
-                var proxyHeader = headers["proxy-connection"];
-                if (hasConnectionheader == false)
-                {
-                    headers.Add("connection", new HttpHeader("connection", proxyHeader.Value));
-                }
-                else
-                {
-                    var connectionHeader = headers["connection"];
-                    connectionHeader.Value = proxyHeader.Value;
-                }
+		/// <summary>
+		/// Fix proxy specific headers
+		/// </summary>
+		/// <param name="headers">The headers.</param>
+		private void FixProxyHeaders(Dictionary<string, HttpHeader> headers)
+		{
+			//If proxy-connection close was returned inform to close the connection
+			var hasProxyHeader = headers.ContainsKey("proxy-connection");
+			var hasConnectionheader = headers.ContainsKey("connection");
 
-                headers.Remove("proxy-connection");
-            }
+			if (hasProxyHeader)
+			{
+				var proxyHeader = headers["proxy-connection"];
+				if (hasConnectionheader == false)
+				{
+					headers.Add("connection", new HttpHeader("connection", proxyHeader.Value));
+				}
+				else
+				{
+					var connectionHeader = headers["connection"];
+					connectionHeader.Value = proxyHeader.Value;
+				}
 
-        }
+				headers.Remove("proxy-connection");
+			}
 
-        /// <summary>
-        /// Handle dispose of a client/server session
-        /// </summary>
-        /// <param name="tcpClient"></param>
-        /// <param name="clientStream"></param>
-        /// <param name="clientStreamReader"></param>
-        /// <param name="clientStreamWriter"></param>
-        /// <param name="args"></param>
-        private void Dispose(Stream clientStream, CustomBinaryReader clientStreamReader,
-            StreamWriter clientStreamWriter, IDisposable args)
-        {
+		}
 
-            if (clientStream != null)
-            {
-                clientStream.Close();
-                clientStream.Dispose();
-            }
+		/// <summary>
+		/// Handle dispose of a client/server session
+		/// </summary>
+		/// <param name="clientStream">The client stream.</param>
+		/// <param name="clientStreamReader">The client stream reader.</param>
+		/// <param name="clientStreamWriter">The client stream writer.</param>
+		/// <param name="args">The arguments.</param>
+		private void Dispose(Stream clientStream, CustomBinaryReader clientStreamReader, StreamWriter clientStreamWriter, IDisposable args)
+		{
+			if (clientStream != null)
+			{
+				clientStream.Close();
+				clientStream.Dispose();
+			}
 
-            if (args != null)
-            {
-                args.Dispose();
-            }
+			args?.Dispose();
+			clientStreamReader?.Dispose();
 
-            if (clientStreamReader != null)
-            {
-                clientStreamReader.Dispose();
-            }
-
-            if (clientStreamWriter != null)
-            {
-                clientStreamWriter.Close();
-                clientStreamWriter.Dispose();
-            }
-        }
-    }
+			if (clientStreamWriter != null)
+			{
+				clientStreamWriter.Close();
+				clientStreamWriter.Dispose();
+			}
+		}
+	}
 }

@@ -6,62 +6,85 @@ using Titanium.Web.Proxy.Models;
 
 namespace Titanium.Web.Proxy.Network
 {
-    /// <summary>
-    /// An object that holds TcpConnection to a particular server & port
-    /// </summary>
-    public class TcpConnection : IDisposable
-    {
-        internal ExternalProxy UpStreamHttpProxy { get; set; }
+	/// <summary>
+	/// An object that holds TcpConnection to a particular server and port
+	/// </summary>
+	public class TcpConnection : IDisposable
+	{
+		/// <summary>
+		/// Gets or sets up stream HTTP proxy.
+		/// </summary>
+		internal ExternalProxy UpStreamHttpProxy { get; set; }
 
-        internal ExternalProxy UpStreamHttpsProxy { get; set; }
+		/// <summary>
+		/// Gets or sets up stream HTTPS proxy.
+		/// </summary>
+		internal ExternalProxy UpStreamHttpsProxy { get; set; }
 
-        internal string HostName { get; set; }
+		/// <summary>
+		/// Gets or sets the name of the host.
+		/// </summary>
+		internal string HostName { get; set; }
 
-        internal int Port { get; set; }
+		/// <summary>
+		/// Gets or sets the port.
+		/// </summary>
+		internal int Port { get; set; }
 
-        internal bool IsHttps { get; set; }
+		/// <summary>
+		/// Gets or sets a value indicating whether this instance is HTTPS.
+		/// </summary>
+		internal bool IsHttps { get; set; }
 
-        internal bool PreAuthenticateUsed { get; set; }
+		/// <summary>
+		/// Gets or sets a value indicating whether [pre authenticate used].
+		/// </summary>
+		internal bool PreAuthenticateUsed { get; set; }
 
-        /// <summary>
-        /// Http version
-        /// </summary>
-        internal Version Version { get; set; }
+		/// <summary>
+		/// Http version
+		/// </summary>
+		internal Version Version { get; set; }
 
-        internal TcpClient TcpClient { get; set; }
+		/// <summary>
+		/// Gets or sets the TCP client.
+		/// </summary>
+		internal TcpClient TcpClient { get; set; }
 
-        /// <summary>
-        /// used to read lines from server
-        /// </summary>
-        internal CustomBinaryReader StreamReader { get; set; }
+		/// <summary>
+		/// used to read lines from server
+		/// </summary>
+		internal CustomBinaryReader StreamReader { get; set; }
 
-        /// <summary>
-        /// Server stream
-        /// </summary>
-        internal Stream Stream { get; set; }
+		/// <summary>
+		/// Server stream
+		/// </summary>
+		internal Stream Stream { get; set; }
 
-        /// <summary>
-        /// Last time this connection was used
-        /// </summary>
-        internal DateTime LastAccess { get; set; }
+		/// <summary>
+		/// Last time this connection was used
+		/// </summary>
+		internal DateTime LastAccess { get; set; }
 
-        internal TcpConnection()
-        {
-            LastAccess = DateTime.Now;
-        }
+		internal TcpConnection()
+		{
+			LastAccess = DateTime.Now;
+		}
 
-        public void Dispose()
-        {
-            Stream.Close();
-            Stream.Dispose();
+		/// <summary>
+		/// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+		/// </summary>
+		public void Dispose()
+		{
+			Stream.Close();
+			Stream.Dispose();
 
-            TcpClient.LingerState = new LingerOption(true, 0);
-            TcpClient.Client.Shutdown(SocketShutdown.Both);
-            TcpClient.Client.Close();
-            TcpClient.Client.Dispose();
+			TcpClient.LingerState = new LingerOption(true, 0);
+			TcpClient.Client.Shutdown(SocketShutdown.Both);
+			TcpClient.Client.Close();
+			TcpClient.Client.Dispose();
 
-            TcpClient.Close();
-
-        }
-    }
+			TcpClient.Close();
+		}
+	}
 }

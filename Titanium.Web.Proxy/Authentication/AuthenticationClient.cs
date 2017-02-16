@@ -2,133 +2,142 @@
 using System.Collections.Generic;
 using System.Net;
 using System.Reflection;
+using System.Threading;
 using System.Threading.Tasks;
 using Titanium.Web.Proxy.Models;
 
 namespace Titanium.Web.Proxy.Authentication
 {
-    /// <summary>
-    /// Implements support for various HTTP authentication schemes
-    /// </summary>
-    public static class AuthenticationClient
-    {
-        /// <summary>
-        /// Authenticate to the specified remote URI.
-        /// </summary>
-        /// <param name="remoteUri">The remote URI.</param>
-        /// <param name="challengeHeader">The challenge header.</param>
-        /// <param name="credentialProvider">The credential provider.</param>
-        /// <param name="secureTransportContext">The secure transport context.</param>
-        /// <returns>Authorization header.</returns>
-        private static async Task<HttpHeader> AuthenticateInternal(Uri remoteUri, HttpHeader challengeHeader, ICredentialProvider credentialProvider, bool preAuthenticationFailed, TransportContext secureTransportContext = null)
-        {
-            if (challengeHeader == null)
-            {
-                return null;
-            }
+	/// <summary>
+	/// Implements support for various HTTP authentication schemes
+	/// </summary>
+	public static class AuthenticationClient
+	{
+		/// <summary>
+		/// Authenticate to the specified remote URI.
+		/// </summary>
+		/// <param name="remoteUri">The remote URI.</param>
+		/// <param name="challengeHeader">The challenge header.</param>
+		/// <param name="credentialProvider">The credential provider.</param>
+		/// <param name="preAuthenticationFailed">if set to <c>true</c> [pre authentication failed].</param>
+		/// <param name="secureTransportContext">The secure transport context.</param>
+		/// <param name="cancellationToken">The cancellation token.</param>
+		/// <returns>Authorization header.</returns>
+		private static async Task<HttpHeader> AuthenticateInternal(Uri remoteUri, HttpHeader challengeHeader, ICredentialProvider credentialProvider, bool preAuthenticationFailed, TransportContext secureTransportContext = null, CancellationToken cancellationToken = default(CancellationToken))
+		{
+			if (challengeHeader == null)
+			{
+				return null;
+			}
 
-            try
-            {
-                var authenticationRequest = WebRequest.Create(remoteUri);
+			try
+			{
+				var authenticationRequest = WebRequest.Create(remoteUri);
 
-                // If preauthentication is failed previously remove relevant cache entry
-                if (preAuthenticationFailed)
-                {
-                    AuthorizationHeaderCache.Remove(remoteUri.Host);
-                }
+				// If preauthentication is failed previously remove relevant cache entry
+				if (preAuthenticationFailed)
+				{
+					AuthorizationHeaderCache.Remove(remoteUri.Host);
+				}
 
-                HttpHeaderCollection proxyAuthorizationHeaders;
+				HttpHeaderCollection proxyAuthorizationHeaders;
 
-                AuthorizationHeaderCache.TryGetProxyAuthorizationHeaders(remoteUri.Host, out proxyAuthorizationHeaders);
+				AuthorizationHeaderCache.TryGetProxyAuthorizationHeaders(remoteUri.Host, out proxyAuthorizationHeaders);
 
-                if (proxyAuthorizationHeaders != null)
-                {
-                    foreach (var header in proxyAuthorizationHeaders.Values)
-                    {
-                        authenticationRequest.Headers.Add(header.Name, header.Value);
-                    }    
-                }
+				if (proxyAuthorizationHeaders != null)
+				{
+					foreach (var header in proxyAuthorizationHeaders.Values)
+					{
+						authenticationRequest.Headers.Add(header.Name, header.Value);
+					}
+				}
 
-                var requestType = authenticationRequest.GetType();
+				if (cancellationToken.IsCancellationRequested)
+				{
+					return null;
+				}
 
-                requestType.InvokeMember("Async", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.SetProperty, null, authenticationRequest, new object[]
-                {
-                    false
-                });
+				var requestType = authenticationRequest.GetType();
 
-                var serverAuthenticationState = requestType.InvokeMember("ServerAuthenticationState", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.GetProperty, null, authenticationRequest, new object[0]);
+				requestType.InvokeMember("Async", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.SetProperty, null, authenticationRequest, new object[]
+				{
+					false
+				});
 
-                var serverAuthenticationStateType = serverAuthenticationState.GetType();
+				var serverAuthenticationState = requestType.InvokeMember("ServerAuthenticationState", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.GetProperty, null, authenticationRequest, new object[0]);
 
-                serverAuthenticationStateType.InvokeMember("ChallengedUri", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.SetField, null, serverAuthenticationState, new object[]
-                {
-                        remoteUri
-                });
+				var serverAuthenticationStateType = serverAuthenticationState.GetType();
 
-                if (secureTransportContext != null)
-                {
-                    serverAuthenticationStateType.InvokeMember("_TransportContext", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.SetField, null, serverAuthenticationState, new object[]
-                        {
-                            secureTransportContext
-                        });
-                }
+				serverAuthenticationStateType.InvokeMember("ChallengedUri", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.SetField, null, serverAuthenticationState, new object[]
+				{
+						remoteUri
+				});
 
-                var credentials = await credentialProvider.GetCredentials();
-                var authorization = AuthenticationManager.Authenticate(challengeHeader.Value, authenticationRequest, credentials);
+				if (secureTransportContext != null)
+				{
+					serverAuthenticationStateType.InvokeMember("_TransportContext", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.SetField, null, serverAuthenticationState, new object[]
+						{
+							secureTransportContext
+						});
+				}
 
-                var authorizationHeader = challengeHeader.Name.StartsWith("WWW", StringComparison.CurrentCultureIgnoreCase)
-                    ? "Authorization"
-                    : "Proxy-Authorization";
+				var credentials = await credentialProvider.GetCredentials();
+				var authorization = AuthenticationManager.Authenticate(challengeHeader.Value, authenticationRequest, credentials);
 
-                return new HttpHeader(authorizationHeader, authorization?.Message);
-            }
-            catch (Exception)
-            {
-                return null;
-            }
-        }
+				var authorizationHeader = challengeHeader.Name.StartsWith("WWW", StringComparison.CurrentCultureIgnoreCase)
+					? "Authorization"
+					: "Proxy-Authorization";
 
-        internal static async Task Authenticate(Uri remoteUri, HttpHeader challengeHeader,
-            ICredentialProvider credentialProvider, IDictionary<string, HttpHeader> requestHeaders, 
-            bool preAuthenticationFailed, TransportContext secureTransportContext = null)
-        {
-            var authorizationHeader = await AuthenticateInternal(remoteUri, challengeHeader, credentialProvider, preAuthenticationFailed, secureTransportContext);
+				return new HttpHeader(authorizationHeader, authorization?.Message);
+			}
+			catch (Exception)
+			{
+				return null;
+			}
+		}
 
-            if (authorizationHeader != null)
-            {
-                requestHeaders[authorizationHeader.Name] = authorizationHeader;
-                requestHeaders["Connection"] = new HttpHeader("Connection", "Keep-Alive");
-                requestHeaders["Proxy-Connection"] = new HttpHeader("Proxy-Connection", "Keep-Alive");
+		internal static async Task Authenticate(Uri remoteUri, HttpHeader challengeHeader,
+			ICredentialProvider credentialProvider, IDictionary<string, HttpHeader> requestHeaders,
+			bool preAuthenticationFailed, TransportContext secureTransportContext = null,
+			CancellationToken cancellationToken = default(CancellationToken))
+		{
+			var authorizationHeader = await AuthenticateInternal(remoteUri, challengeHeader, credentialProvider, preAuthenticationFailed, secureTransportContext, cancellationToken: cancellationToken);
 
-                AuthorizationHeaderCache.Cache(remoteUri.Host, authorizationHeader);
-            }
-        }
+			if (authorizationHeader != null)
+			{
+				requestHeaders[authorizationHeader.Name] = authorizationHeader;
+				requestHeaders["Connection"] = new HttpHeader("Connection", "Keep-Alive");
+				requestHeaders["Proxy-Connection"] = new HttpHeader("Proxy-Connection", "Keep-Alive");
 
-        /// <summary>
-        /// Authenticates the specified client wrapper.
-        /// </summary>
-        /// <param name="requestUri">The request URI.</param>
-        /// <param name="requestHeaders">The request headers.</param>
-        /// <returns>Task.</returns>
-        /// <exception cref="InvalidOperationException">Authorization failed.</exception>
-        internal static void PreAuthenticate(Uri requestUri, IDictionary<string, HttpHeader> requestHeaders)
-        {
-            HttpHeaderCollection authorizationHeaderCollection;
-            
-            AuthorizationHeaderCache.TryGetAllAuthorizationHeaders(requestUri.Host, out authorizationHeaderCollection);
+				AuthorizationHeaderCache.Cache(remoteUri.Host, authorizationHeader);
+			}
+		}
 
-            if (authorizationHeaderCollection == null)
-            {
-                return;
-            }
+		/// <summary>
+		/// Authenticates the specified client wrapper.
+		/// </summary>
+		/// <param name="requestUri">The request URI.</param>
+		/// <param name="requestHeaders">The request headers.</param>
+		/// <returns>Task.</returns>
+		/// <exception cref="InvalidOperationException">Authorization failed.</exception>
+		internal static void PreAuthenticate(Uri requestUri, IDictionary<string, HttpHeader> requestHeaders)
+		{
+			HttpHeaderCollection authorizationHeaderCollection;
 
-            foreach (var authorizationHeader in authorizationHeaderCollection.Values)
-            {
-                requestHeaders[authorizationHeader.Name] = authorizationHeader;
-            }
+			AuthorizationHeaderCache.TryGetAllAuthorizationHeaders(requestUri.Host, out authorizationHeaderCollection);
 
-            requestHeaders["Connection"] = new HttpHeader("Connection", "Keep-Alive");
-            requestHeaders["Proxy-Connection"] = new HttpHeader("Proxy-Connection", "Keep-Alive");
-        }
-    }
+			if (authorizationHeaderCollection == null)
+			{
+				return;
+			}
+
+			foreach (var authorizationHeader in authorizationHeaderCollection.Values)
+			{
+				requestHeaders[authorizationHeader.Name] = authorizationHeader;
+			}
+
+			requestHeaders["Connection"] = new HttpHeader("Connection", "Keep-Alive");
+			requestHeaders["Proxy-Connection"] = new HttpHeader("Proxy-Connection", "Keep-Alive");
+		}
+	}
 }

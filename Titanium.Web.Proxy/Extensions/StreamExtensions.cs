@@ -1,232 +1,233 @@
 ﻿using System.Globalization;
 using System.IO;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Titanium.Web.Proxy.Helpers;
 using Titanium.Web.Proxy.Shared;
 
 namespace Titanium.Web.Proxy.Extensions
 {
-    /// <summary>
-    /// Extensions used for Stream and CustomBinaryReader objects
-    /// </summary>
-    internal static class StreamExtensions
-    {
-        /// <summary>
-        /// Copy streams asynchronously with an initial data inserted to the beginning of stream
-        /// </summary>
-        /// <param name="input"></param>
-        /// <param name="initialData"></param>
-        /// <param name="output"></param>
-        /// <returns></returns>
-        internal static async Task CopyToAsync(this Stream input, string initialData, Stream output)
-        {
-            if (!string.IsNullOrEmpty(initialData))
-            {
-                var bytes = Encoding.ASCII.GetBytes(initialData);
-                await output.WriteAsync(bytes, 0, bytes.Length);
-            }
+	/// <summary>
+	/// Extensions used for Stream and CustomBinaryReader objects
+	/// </summary>
+	internal static class StreamExtensions
+	{
+		/// <summary>
+		/// Copy streams asynchronously with an initial data inserted to the beginning of stream
+		/// </summary>
+		/// <param name="input">The input.</param>
+		/// <param name="initialData">The initial data.</param>
+		/// <param name="output">The output.</param>
+		/// <param name="cancellationToken">The cancellation token.</param>
+		internal static async Task CopyToAsync(this Stream input, string initialData, Stream output, CancellationToken cancellationToken = default(CancellationToken))
+		{
+			if (!string.IsNullOrEmpty(initialData))
+			{
+				var bytes = Encoding.ASCII.GetBytes(initialData);
+				await output.WriteAsync(bytes, 0, bytes.Length, cancellationToken: cancellationToken);
+			}
 
-            await input.CopyToAsync(output);
-        }
+			await input.CopyToAsync(output);
+		}
 
-        /// <summary>
-        /// copies the specified bytes to the stream from the input stream
-        /// </summary>
-        /// <param name="streamReader"></param>
-        /// <param name="bufferSize"></param>
-        /// <param name="stream"></param>
-        /// <param name="totalBytesToRead"></param>
-        /// <returns></returns>
-        internal static async Task CopyBytesToStream(this CustomBinaryReader streamReader, int bufferSize, Stream stream, long totalBytesToRead)
-        {
-            var totalbytesRead = 0;
+		/// <summary>
+		/// copies the specified bytes to the stream from the input stream
+		/// </summary>
+		/// <param name="streamReader">The stream reader.</param>
+		/// <param name="bufferSize">Size of the buffer.</param>
+		/// <param name="stream">The stream.</param>
+		/// <param name="totalBytesToRead">The total bytes to read.</param>
+		/// <param name="cancellationToken">The cancellation token.</param>
+		internal static async Task CopyBytesToStream(this CustomBinaryReader streamReader, int bufferSize, Stream stream, long totalBytesToRead, CancellationToken cancellationToken = default(CancellationToken))
+		{
+			var totalbytesRead = 0;
 
-            long bytesToRead = totalBytesToRead < bufferSize ? totalBytesToRead : bufferSize;
+			var bytesToRead = totalBytesToRead < bufferSize ? totalBytesToRead : bufferSize;
 
-            while (totalbytesRead < totalBytesToRead)
-            {
-                var buffer = await streamReader.ReadBytesAsync(bufferSize, bytesToRead);
+			while (totalbytesRead < totalBytesToRead)
+			{
+				var buffer = await streamReader.ReadBytesAsync(bufferSize, bytesToRead, cancellationToken: cancellationToken);
 
-                if (buffer.Length == 0)
-                {
-                    break;
-                }
+				if (buffer.Length == 0)
+				{
+					break;
+				}
 
-                totalbytesRead += buffer.Length;
+				totalbytesRead += buffer.Length;
 
-                var remainingBytes = totalBytesToRead - totalbytesRead;
-                if (remainingBytes < bytesToRead)
-                {
-                    bytesToRead = remainingBytes;
-                }
+				var remainingBytes = totalBytesToRead - totalbytesRead;
+				if (remainingBytes < bytesToRead)
+				{
+					bytesToRead = remainingBytes;
+				}
 
-                await stream.WriteAsync(buffer, 0, buffer.Length);
-            }
-        }
+				await stream.WriteAsync(buffer, 0, buffer.Length, cancellationToken: cancellationToken);
+			}
+		}
 
-        /// <summary>
-        /// Copies the stream chunked
-        /// </summary>
-        /// <param name="clientStreamReader"></param>
-        /// <param name="bufferSize"></param>
-        /// <param name="stream"></param>
-        /// <returns></returns>
-        internal static async Task CopyBytesToStreamChunked(this CustomBinaryReader clientStreamReader, int bufferSize, Stream stream)
-        {
-            while (true)
-            {
-                var chunkHead = await clientStreamReader.ReadLineAsync();
-                int chunkSize;
+		/// <summary>
+		/// Copies the stream chunked
+		/// </summary>
+		/// <param name="clientStreamReader">The client stream reader.</param>
+		/// <param name="bufferSize">Size of the buffer.</param>
+		/// <param name="stream">The stream.</param>
+		/// <param name="cancellationToken">The cancellation token.</param>
+		internal static async Task CopyBytesToStreamChunked(this CustomBinaryReader clientStreamReader, int bufferSize, Stream stream, CancellationToken cancellationToken = default(CancellationToken))
+		{
+			while (true)
+			{
+				var chunkHead = await clientStreamReader.ReadLineAsync(cancellationToken: cancellationToken);
+				int chunkSize;
 
-                if (!int.TryParse(chunkHead, NumberStyles.HexNumber, NumberFormatInfo.InvariantInfo, out chunkSize))
-                {
-                    return;
-                }
+				if (!int.TryParse(chunkHead, NumberStyles.HexNumber, NumberFormatInfo.InvariantInfo, out chunkSize))
+				{
+					return;
+				}
 
-                if (chunkSize != 0)
-                {
-                    var buffer = await clientStreamReader.ReadBytesAsync(bufferSize, chunkSize);
-                    await stream.WriteAsync(buffer, 0, buffer.Length);
-                    //chunk trail
-                    await clientStreamReader.ReadLineAsync();
-                }
-                else
-                {
-                    await clientStreamReader.ReadLineAsync();
-                    break;
-                }
-            }
-        }
+				if (chunkSize != 0)
+				{
+					var buffer = await clientStreamReader.ReadBytesAsync(bufferSize, chunkSize, cancellationToken: cancellationToken);
+					await stream.WriteAsync(buffer, 0, buffer.Length, cancellationToken: cancellationToken);
+					//chunk trail
+					await clientStreamReader.ReadLineAsync(cancellationToken: cancellationToken);
+				}
+				else
+				{
+					await clientStreamReader.ReadLineAsync(cancellationToken: cancellationToken);
+					break;
+				}
+			}
+		}
 
-        /// <summary>
-        /// Writes the byte array body to the given stream; optionally chunked
-        /// </summary>
-        /// <param name="clientStream"></param>
-        /// <param name="data"></param>
-        /// <param name="isChunked"></param>
-        /// <returns></returns>
-        internal static async Task WriteResponseBody(this Stream clientStream, byte[] data, bool isChunked)
-        {
-            if (!isChunked)
-            {
-                await clientStream.WriteAsync(data, 0, data.Length);
-            }
-            else
-            {
-                await WriteResponseBodyChunked(data, clientStream);
-            }
-        }
+		/// <summary>
+		/// Writes the byte array body to the given stream; optionally chunked
+		/// </summary>
+		/// <param name="clientStream">The client stream.</param>
+		/// <param name="data">The data.</param>
+		/// <param name="isChunked">if set to <c>true</c> [is chunked].</param>
+		/// <param name="cancellationToken">The cancellation token.</param>
+		internal static async Task WriteResponseBody(this Stream clientStream, byte[] data, bool isChunked, CancellationToken cancellationToken = default(CancellationToken))
+		{
+			if (!isChunked)
+			{
+				await clientStream.WriteAsync(data, 0, data.Length, cancellationToken: cancellationToken);
+			}
+			else
+			{
+				await WriteResponseBodyChunked(data, clientStream, cancellationToken: cancellationToken);
+			}
+		}
 
-        /// <summary>
-        /// Copies the specified content length number of bytes to the output stream from the given inputs stream
-        /// optionally chunked
-        /// </summary>
-        /// <param name="inStreamReader"></param>
-        /// <param name="bufferSize"></param>
-        /// <param name="outStream"></param>
-        /// <param name="isChunked"></param>
-        /// <param name="contentLength"></param>
-        /// <returns></returns>
-        internal static async Task WriteResponseBody(this CustomBinaryReader inStreamReader, int bufferSize, Stream outStream, bool isChunked, long contentLength)
-        {
-            if (!isChunked)
-            {
-                //http 1.0
-                if (contentLength == -1)
-                {
-                    contentLength = long.MaxValue;
-                }
+		/// <summary>
+		/// Copies the specified content length number of bytes to the output stream from the given inputs stream
+		/// optionally chunked
+		/// </summary>
+		/// <param name="inStreamReader">The in stream reader.</param>
+		/// <param name="bufferSize">Size of the buffer.</param>
+		/// <param name="outStream">The out stream.</param>
+		/// <param name="isChunked">if set to <c>true</c> [is chunked].</param>
+		/// <param name="contentLength">Length of the content.</param>
+		/// <param name="cancellationToken">The cancellation token.</param>
+		internal static async Task WriteResponseBody(this CustomBinaryReader inStreamReader, int bufferSize, Stream outStream, bool isChunked, long contentLength, CancellationToken cancellationToken = default(CancellationToken))
+		{
+			if (!isChunked)
+			{
+				//http 1.0
+				if (contentLength == -1)
+				{
+					contentLength = long.MaxValue;
+				}
 
-                int bytesToRead = bufferSize;
+				var bytesToRead = bufferSize;
 
-                if (contentLength < bufferSize)
-                {
-                    bytesToRead = (int)contentLength;
-                }
+				if (contentLength < bufferSize)
+				{
+					bytesToRead = (int)contentLength;
+				}
 
-                var buffer = new byte[bufferSize];
+				var buffer = new byte[bufferSize];
 
-                var bytesRead = 0;
-                var totalBytesRead = 0;
+				var bytesRead = 0;
+				var totalBytesRead = 0;
 
-                while ((bytesRead += await inStreamReader.BaseStream.ReadAsync(buffer, 0, bytesToRead)) > 0)
-                {
-                    await outStream.WriteAsync(buffer, 0, bytesRead);
-                    totalBytesRead += bytesRead;
+				while ((bytesRead += await inStreamReader.BaseStream.ReadAsync(buffer, 0, bytesToRead, cancellationToken: cancellationToken)) > 0)
+				{
+					await outStream.WriteAsync(buffer, 0, bytesRead, cancellationToken: cancellationToken);
+					totalBytesRead += bytesRead;
 
-                    if (totalBytesRead == contentLength)
-                        break;
+					if (totalBytesRead == contentLength)
+						break;
 
-                    bytesRead = 0;
-                    var remainingBytes = (contentLength - totalBytesRead);
-                    bytesToRead = remainingBytes > (long)bufferSize ? bufferSize : (int)remainingBytes;
-                }
-            }
-            else
-            {
-                await WriteResponseBodyChunked(inStreamReader, bufferSize, outStream);
-            }
-        }
+					bytesRead = 0;
+					var remainingBytes = (contentLength - totalBytesRead);
+					bytesToRead = remainingBytes > (long)bufferSize ? bufferSize : (int)remainingBytes;
+				}
+			}
+			else
+			{
+				await WriteResponseBodyChunked(inStreamReader, bufferSize, outStream, cancellationToken: cancellationToken);
+			}
+		}
 
-        /// <summary>
-        /// Copies the streams chunked
-        /// </summary>
-        /// <param name="inStreamReader"></param>
-        /// <param name="bufferSize"></param>
-        /// <param name="outStream"></param>
-        /// <returns></returns>
-        internal static async Task WriteResponseBodyChunked(this CustomBinaryReader inStreamReader, int bufferSize, Stream outStream)
-        {
-            while (true)
-            {
-                var chunkHead = await inStreamReader.ReadLineAsync();
-                int chunkSize;
+		/// <summary>
+		/// Copies the streams chunked
+		/// </summary>
+		/// <param name="inStreamReader">The in stream reader.</param>
+		/// <param name="bufferSize">Size of the buffer.</param>
+		/// <param name="outStream">The out stream.</param>
+		/// <param name="cancellationToken">The cancellation token.</param>
+		internal static async Task WriteResponseBodyChunked(this CustomBinaryReader inStreamReader, int bufferSize, Stream outStream, CancellationToken cancellationToken = default(CancellationToken))
+		{
+			while (true)
+			{
+				var chunkHead = await inStreamReader.ReadLineAsync(cancellationToken: cancellationToken);
+				int chunkSize;
 
-                if (!int.TryParse(chunkHead, NumberStyles.HexNumber, NumberFormatInfo.InvariantInfo, out chunkSize))
-                {
-                    return;
-                }
+				if (!int.TryParse(chunkHead, NumberStyles.HexNumber, NumberFormatInfo.InvariantInfo, out chunkSize))
+				{
+					return;
+				}
 
-                if (chunkSize != 0)
-                {
-                    var buffer = await inStreamReader.ReadBytesAsync(bufferSize, chunkSize);
+				if (chunkSize != 0)
+				{
+					var buffer = await inStreamReader.ReadBytesAsync(bufferSize, chunkSize, cancellationToken: cancellationToken);
 
-                    var chunkHeadBytes = Encoding.ASCII.GetBytes(chunkSize.ToString("x2"));
+					var chunkHeadBytes = Encoding.ASCII.GetBytes(chunkSize.ToString("x2"));
 
-                    await outStream.WriteAsync(chunkHeadBytes, 0, chunkHeadBytes.Length);
-                    await outStream.WriteAsync(ProxyConstants.NewLineBytes, 0, ProxyConstants.NewLineBytes.Length);
+					await outStream.WriteAsync(chunkHeadBytes, 0, chunkHeadBytes.Length, cancellationToken: cancellationToken);
+					await outStream.WriteAsync(ProxyConstants.NewLineBytes, 0, ProxyConstants.NewLineBytes.Length, cancellationToken: cancellationToken);
 
-                    await outStream.WriteAsync(buffer, 0, chunkSize);
-                    await outStream.WriteAsync(ProxyConstants.NewLineBytes, 0, ProxyConstants.NewLineBytes.Length);
+					await outStream.WriteAsync(buffer, 0, chunkSize, cancellationToken: cancellationToken);
+					await outStream.WriteAsync(ProxyConstants.NewLineBytes, 0, ProxyConstants.NewLineBytes.Length, cancellationToken: cancellationToken);
 
-                    await inStreamReader.ReadLineAsync();
-                }
-                else
-                {
-                    await inStreamReader.ReadLineAsync();
-                    await outStream.WriteAsync(ProxyConstants.ChunkEnd, 0, ProxyConstants.ChunkEnd.Length);
-                    break;
-                }
-            }
-        }
-        
-        /// <summary>
-        /// Copies the given input bytes to output stream chunked
-        /// </summary>
-        /// <param name="data"></param>
-        /// <param name="outStream"></param>
-        /// <returns></returns>
-        internal static async Task WriteResponseBodyChunked(this byte[] data, Stream outStream)
-        {
-            var chunkHead = Encoding.ASCII.GetBytes(data.Length.ToString("x2"));
+					await inStreamReader.ReadLineAsync(cancellationToken: cancellationToken);
+				}
+				else
+				{
+					await inStreamReader.ReadLineAsync(cancellationToken: cancellationToken);
+					await outStream.WriteAsync(ProxyConstants.ChunkEnd, 0, ProxyConstants.ChunkEnd.Length, cancellationToken: cancellationToken);
+					break;
+				}
+			}
+		}
 
-            await outStream.WriteAsync(chunkHead, 0, chunkHead.Length);
-            await outStream.WriteAsync(ProxyConstants.NewLineBytes, 0, ProxyConstants.NewLineBytes.Length);
-            await outStream.WriteAsync(data, 0, data.Length);
-            await outStream.WriteAsync(ProxyConstants.NewLineBytes, 0, ProxyConstants.NewLineBytes.Length);
+		/// <summary>
+		/// Copies the given input bytes to output stream chunked
+		/// </summary>
+		/// <param name="data">The data.</param>
+		/// <param name="outStream">The out stream.</param>
+		/// <param name="cancellationToken">The cancellation token.</param>
+		internal static async Task WriteResponseBodyChunked(this byte[] data, Stream outStream, CancellationToken cancellationToken = default(CancellationToken))
+		{
+			var chunkHead = Encoding.ASCII.GetBytes(data.Length.ToString("x2"));
 
-            await outStream.WriteAsync(ProxyConstants.ChunkEnd, 0, ProxyConstants.ChunkEnd.Length);
-        }
-    }
+			await outStream.WriteAsync(chunkHead, 0, chunkHead.Length, cancellationToken: cancellationToken);
+			await outStream.WriteAsync(ProxyConstants.NewLineBytes, 0, ProxyConstants.NewLineBytes.Length, cancellationToken: cancellationToken);
+			await outStream.WriteAsync(data, 0, data.Length, cancellationToken: cancellationToken);
+			await outStream.WriteAsync(ProxyConstants.NewLineBytes, 0, ProxyConstants.NewLineBytes.Length, cancellationToken: cancellationToken);
+
+			await outStream.WriteAsync(ProxyConstants.ChunkEnd, 0, ProxyConstants.ChunkEnd.Length, cancellationToken: cancellationToken);
+		}
+	}
 }
