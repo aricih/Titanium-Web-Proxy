@@ -115,7 +115,7 @@ namespace Titanium.Web.Proxy.Http
 			requestLines.Append(ProxyConstants.CoreNewLine);
 
 			var request = requestLines.ToString();
-			var requestBytes = Encoding.ASCII.GetBytes(request);
+			var requestBytes = ProxyConstants.DefaultEncoding.GetBytes(request);
 
 			await stream.WriteAsync(requestBytes, 0, requestBytes.Length, cancellationToken: cancellationToken);
 			await stream.FlushAsync(cancellationToken: cancellationToken);

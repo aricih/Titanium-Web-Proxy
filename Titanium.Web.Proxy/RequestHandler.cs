@@ -7,7 +7,6 @@ using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Authentication;
-using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -41,7 +40,7 @@ namespace Titanium.Web.Proxy
 			clientStream.WriteTimeout = ConnectionTimeOutSeconds * 1000;
 
 			var clientStreamReader = new CustomBinaryReader(clientStream);
-			var clientStreamWriter = new StreamWriter(clientStream, Encoding.ASCII, BufferSize, true);
+			var clientStreamWriter = new StreamWriter(clientStream, ProxyConstants.DefaultEncoding, BufferSize, true);
 
 			Uri httpRemoteUri;
 			try

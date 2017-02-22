@@ -6,8 +6,8 @@ using System.Net.Security;
 using Titanium.Web.Proxy.Helpers;
 using Titanium.Web.Proxy.Models;
 using System.Security.Authentication;
-using System.Text;
 using System.Threading;
+using Titanium.Web.Proxy.Shared;
 
 namespace Titanium.Web.Proxy.Network
 {
@@ -91,7 +91,7 @@ namespace Titanium.Web.Proxy.Network
 			{
 				var credentials = await ProxyServer.Instance.GetCustomHttpCredentialsFunc(requestUri.Host);
 
-				var authorizationHeader = new HttpHeader("Authorization", $"Simple {Convert.ToBase64String(Encoding.UTF8.GetBytes($"{credentials.UserName}:{credentials.Password}"))}");
+				var authorizationHeader = new HttpHeader("Authorization", $"Simple {Convert.ToBase64String(ProxyConstants.DefaultEncoding.GetBytes($"{credentials.UserName}:{credentials.Password}"))}");
 
 				requestHeaders[authorizationHeader.Name] = authorizationHeader;
 			}

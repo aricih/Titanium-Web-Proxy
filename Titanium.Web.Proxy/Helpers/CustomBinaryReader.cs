@@ -1,9 +1,9 @@
 ﻿using System.Collections.Generic;
 using System.IO;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Titanium.Web.Proxy.Extensions;
+using Titanium.Web.Proxy.Shared;
 
 namespace Titanium.Web.Proxy.Helpers
 {
@@ -39,13 +39,13 @@ namespace Titanium.Web.Proxy.Helpers
 					if (lastChar == '\r' && buffer[0] == '\n')
 					{
 						var result = readBuffer.ToArray();
-						return Encoding.UTF8.GetString(result.SubArray(0, result.Length - 1));
+						return ProxyConstants.DefaultEncoding.GetString(result.SubArray(0, result.Length - 1));
 					}
 
 					// End of stream
 					if (buffer[0] == '\0')
 					{
-						return Encoding.UTF8.GetString(readBuffer.ToArray());
+						return ProxyConstants.DefaultEncoding.GetString(readBuffer.ToArray());
 					}
 
 					await readBuffer.WriteAsync(buffer, 0, 1, cancellationToken: cancellationToken);
@@ -54,7 +54,7 @@ namespace Titanium.Web.Proxy.Helpers
 					lastChar = (char)buffer[0];
 				}
 
-				return Encoding.UTF8.GetString(readBuffer.ToArray());
+				return ProxyConstants.DefaultEncoding.GetString(readBuffer.ToArray());
 			}
 		}
 

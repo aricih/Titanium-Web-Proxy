@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Text;
 using Titanium.Web.Proxy.Exceptions;
 using Titanium.Web.Proxy.Decompression;
 using Titanium.Web.Proxy.Http;
@@ -12,6 +11,7 @@ using Titanium.Web.Proxy.Network;
 using System.Net;
 using System.Threading;
 using Titanium.Web.Proxy.Models;
+using Titanium.Web.Proxy.Shared;
 
 namespace Titanium.Web.Proxy.EventArguments
 {
@@ -438,7 +438,7 @@ namespace Titanium.Web.Proxy.EventArguments
 				html = string.Empty;
 			}
 
-			var result = Encoding.Default.GetBytes(html);
+			var result = ProxyConstants.DefaultEncoding.GetBytes(html);
 
 			await Ok(result, headers, cancellationToken: cancellationToken);
 		}
@@ -488,7 +488,7 @@ namespace Titanium.Web.Proxy.EventArguments
 			var response = new RedirectResponse { HttpVersion = WebSession.Request.HttpVersion };
 
 			response.ResponseHeaders.Add("Location", new HttpHeader("Location", url));
-			response.ResponseBody = Encoding.ASCII.GetBytes(string.Empty);
+			response.ResponseBody = ProxyConstants.DefaultEncoding.GetBytes(string.Empty);
 
 			await Respond(response, cancellationToken: cancellationToken);
 

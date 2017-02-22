@@ -10,8 +10,6 @@ namespace Titanium.Web.Proxy.Extensions
 	/// </summary>
 	internal static class HttpWebRequestExtensions
 	{
-		private static readonly Encoding DefaultEncoding = Encoding.UTF8;
-
 		/// <summary>
 		/// parse the character encoding of request from request headers
 		/// </summary>
@@ -24,7 +22,7 @@ namespace Titanium.Web.Proxy.Extensions
 				//return default if not specified
 				if (request.ContentType == null)
 				{
-					return DefaultEncoding;
+					return ProxyConstants.DefaultEncoding;
 				}
 
 				//extract the encoding by finding the charset
@@ -45,7 +43,7 @@ namespace Titanium.Web.Proxy.Extensions
 			}
 
 			//return default if not specified
-			return DefaultEncoding;
+			return ProxyConstants.DefaultEncoding;
 		}
 	}
 }

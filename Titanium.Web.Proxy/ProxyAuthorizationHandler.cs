@@ -2,11 +2,11 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using Titanium.Web.Proxy.Exceptions;
 using Titanium.Web.Proxy.Http;
 using Titanium.Web.Proxy.Models;
+using Titanium.Web.Proxy.Shared;
 
 namespace Titanium.Web.Proxy
 {
@@ -77,7 +77,7 @@ namespace Titanium.Web.Proxy
 				}
 				headerValue = headerValue.Substring(5).Trim();
 
-				var decoded = Encoding.UTF8.GetString(Convert.FromBase64String(headerValue));
+				var decoded = ProxyConstants.DefaultEncoding.GetString(Convert.FromBase64String(headerValue));
 				if (decoded.Contains(":") == false)
 				{
 					//Return not authorized

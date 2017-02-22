@@ -1,6 +1,5 @@
 ﻿using System.Globalization;
 using System.IO;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Titanium.Web.Proxy.Helpers;
@@ -24,7 +23,7 @@ namespace Titanium.Web.Proxy.Extensions
 		{
 			if (!string.IsNullOrEmpty(initialData))
 			{
-				var bytes = Encoding.ASCII.GetBytes(initialData);
+				var bytes = ProxyConstants.DefaultEncoding.GetBytes(initialData);
 				await output.WriteAsync(bytes, 0, bytes.Length, cancellationToken: cancellationToken);
 			}
 
@@ -195,7 +194,7 @@ namespace Titanium.Web.Proxy.Extensions
 				{
 					var buffer = await inStreamReader.ReadBytesAsync(bufferSize, chunkSize, cancellationToken: cancellationToken);
 
-					var chunkHeadBytes = Encoding.ASCII.GetBytes(chunkSize.ToString("x2"));
+					var chunkHeadBytes = ProxyConstants.DefaultEncoding.GetBytes(chunkSize.ToString("x2"));
 
 					await outStream.WriteAsync(chunkHeadBytes, 0, chunkHeadBytes.Length, cancellationToken: cancellationToken);
 					await outStream.WriteAsync(ProxyConstants.NewLineBytes, 0, ProxyConstants.NewLineBytes.Length, cancellationToken: cancellationToken);
@@ -222,7 +221,7 @@ namespace Titanium.Web.Proxy.Extensions
 		/// <param name="cancellationToken">The cancellation token.</param>
 		internal static async Task WriteResponseBodyChunked(this byte[] data, Stream outStream, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			var chunkHead = Encoding.ASCII.GetBytes(data.Length.ToString("x2"));
+			var chunkHead = ProxyConstants.DefaultEncoding.GetBytes(data.Length.ToString("x2"));
 
 			await outStream.WriteAsync(chunkHead, 0, chunkHead.Length, cancellationToken: cancellationToken);
 			await outStream.WriteAsync(ProxyConstants.NewLineBytes, 0, ProxyConstants.NewLineBytes.Length, cancellationToken: cancellationToken);
