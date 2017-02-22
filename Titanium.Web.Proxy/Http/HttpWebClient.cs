@@ -85,23 +85,21 @@ namespace Titanium.Web.Proxy.Http
 			var requestLines = new StringBuilder();
 
 			//prepare the request & headers
-			if ((ServerConnection.UpStreamHttpProxy != null && ServerConnection.IsHttps == false) ||
-			    (ServerConnection.UpStreamHttpsProxy != null && ServerConnection.IsHttps))
+			if ((ServerConnection.UpstreamHttpProxy != null && ServerConnection.IsHttps == false) ||
+				(ServerConnection.UpstreamHttpsProxy != null && ServerConnection.IsHttps))
 			{
-				requestLines.AppendLine(string.Join(" ", Request.Method, Request.RequestUri.AbsoluteUri,
-					$"HTTP/{Request.HttpVersion.Major}.{Request.HttpVersion.Minor}"));
+				requestLines.Append($"{Request.Method} {Request.RequestUri.AbsoluteUri} HTTP/{Request.HttpVersion.Major}.{Request.HttpVersion.Minor}{ProxyConstants.CoreNewLine}");
 			}
 			else
 			{
-				requestLines.AppendLine(string.Join(" ", Request.Method, Request.RequestUri.PathAndQuery,
-					$"HTTP/{Request.HttpVersion.Major}.{Request.HttpVersion.Minor}"));
+				requestLines.Append($"{Request.Method} {Request.RequestUri.PathAndQuery} HTTP/{Request.HttpVersion.Major}.{Request.HttpVersion.Minor}{ProxyConstants.CoreNewLine}");
 			}
 
 			//write request headers
 			foreach (var headerItem in Request.RequestHeaders)
 			{
 				var header = headerItem.Value;
-				requestLines.AppendLine(header.Name + ':' + header.Value);
+				requestLines.Append($"{header.Name}: {header.Value}{ProxyConstants.CoreNewLine}");
 			}
 
 			//write non unique request headers
@@ -110,11 +108,11 @@ namespace Titanium.Web.Proxy.Http
 				var headers = headerItem.Value;
 				foreach (var header in headers)
 				{
-					requestLines.AppendLine(header.Name + ':' + header.Value);
+					requestLines.Append($"{header.Name}: {header.Value}{ProxyConstants.CoreNewLine}");
 				}
 			}
 
-			requestLines.AppendLine();
+			requestLines.Append(ProxyConstants.CoreNewLine);
 
 			var request = requestLines.ToString();
 			var requestBytes = Encoding.ASCII.GetBytes(request);
@@ -131,15 +129,15 @@ namespace Titanium.Web.Proxy.Http
 
 					//find if server is willing for expect continue
 					if (httpResponseHead.StatusCode == 100
-					    && httpResponseHead.StatusDescription.Equals("continue", StringComparison.InvariantCultureIgnoreCase))
+						&& httpResponseHead.StatusDescription.Equals("continue", StringComparison.InvariantCultureIgnoreCase))
 					{
 						Request.Is100Continue = true;
 						await ServerConnection.StreamReader.ReadLineAsync(cancellationToken: cancellationToken);
 					}
 					else if (httpResponseHead.StatusCode == 417
-					         &&
-					         httpResponseHead.StatusDescription.Equals("expectation failed",
-						         StringComparison.InvariantCultureIgnoreCase))
+							 &&
+							 httpResponseHead.StatusDescription.Equals("expectation failed",
+								 StringComparison.InvariantCultureIgnoreCase))
 					{
 						Request.ExpectationFailed = true;
 						await ServerConnection.StreamReader.ReadLineAsync(cancellationToken: cancellationToken);
@@ -181,7 +179,7 @@ namespace Titanium.Web.Proxy.Http
 
 				// For HTTP 1.1 comptibility server may send expect-continue even if not asked for it in request
 				if (Response.ResponseStatusCode == 100
-				    && Response.ResponseStatusDescription.ToLower().Equals("continue"))
+					&& Response.ResponseStatusDescription.ToLower().Equals("continue"))
 				{
 					// Read the next line after 100-continue 
 					Response.Is100Continue = true;
@@ -194,7 +192,7 @@ namespace Titanium.Web.Proxy.Http
 				}
 
 				if (Response.ResponseStatusCode == 417
-				    && Response.ResponseStatusDescription.ToLower().Equals("expectation failed"))
+					&& Response.ResponseStatusDescription.ToLower().Equals("expectation failed"))
 				{
 					//read next line after expectation failed response
 					Response.ExpectationFailed = true;
@@ -226,7 +224,7 @@ namespace Titanium.Web.Proxy.Http
 					{
 						var existing = Response.ResponseHeaders[newHeader.Name];
 
-						var nonUniqueHeaders = new List<HttpHeader> {existing, newHeader};
+						var nonUniqueHeaders = new List<HttpHeader> { existing, newHeader };
 
 						Response.NonUniqueResponseHeaders.Add(newHeader.Name, nonUniqueHeaders);
 						Response.ResponseHeaders.Remove(newHeader.Name);
@@ -240,7 +238,7 @@ namespace Titanium.Web.Proxy.Http
 			}
 			catch (Exception ex)
 			{
-				
+
 			}
 		}
 	}

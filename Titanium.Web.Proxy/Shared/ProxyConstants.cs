@@ -8,14 +8,16 @@ namespace Titanium.Web.Proxy.Shared
 	/// </summary>
 	internal class ProxyConstants
 	{
+		internal static readonly string CoreNewLine = "\r\n";
 		internal static readonly char[] SpaceSplit = { ' ' };
 		internal static readonly char[] ColonSplit = { ':' };
 		internal static readonly char[] SemiColonSplit = { ';' };
 
-		internal static readonly byte[] NewLineBytes = Encoding.ASCII.GetBytes(Environment.NewLine);
+		internal static readonly Encoding DefaultEncoding = Encoding.UTF8;
 
-		internal static readonly byte[] ChunkEnd =
-			Encoding.ASCII.GetBytes(0.ToString("x2") + Environment.NewLine + Environment.NewLine);
+		internal static readonly byte[] NewLineBytes = DefaultEncoding.GetBytes(CoreNewLine);
+
+		internal static readonly byte[] ChunkEnd = DefaultEncoding.GetBytes($"00{CoreNewLine}{CoreNewLine}");
 
 	}
 }

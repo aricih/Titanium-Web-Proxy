@@ -131,7 +131,11 @@ namespace Titanium.Web.Proxy.Extensions
 		/// <param name="cancellationToken">The cancellation token.</param>
 		internal static async Task WriteResponseBody(this CustomBinaryReader inStreamReader, int bufferSize, Stream outStream, bool isChunked, long contentLength, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			if (!isChunked)
+			if (isChunked)
+			{
+				await WriteResponseBodyChunked(inStreamReader, bufferSize, outStream, cancellationToken: cancellationToken);
+			}
+			else
 			{
 				//http 1.0
 				if (contentLength == -1)
@@ -143,7 +147,7 @@ namespace Titanium.Web.Proxy.Extensions
 
 				if (contentLength < bufferSize)
 				{
-					bytesToRead = (int)contentLength;
+					bytesToRead = (int) contentLength;
 				}
 
 				var buffer = new byte[bufferSize];
@@ -151,7 +155,9 @@ namespace Titanium.Web.Proxy.Extensions
 				var bytesRead = 0;
 				var totalBytesRead = 0;
 
-				while ((bytesRead += await inStreamReader.BaseStream.ReadAsync(buffer, 0, bytesToRead, cancellationToken: cancellationToken)) > 0)
+				while (
+				(bytesRead +=
+					await inStreamReader.BaseStream.ReadAsync(buffer, 0, bytesToRead, cancellationToken: cancellationToken)) > 0)
 				{
 					await outStream.WriteAsync(buffer, 0, bytesRead, cancellationToken: cancellationToken);
 					totalBytesRead += bytesRead;
@@ -161,12 +167,8 @@ namespace Titanium.Web.Proxy.Extensions
 
 					bytesRead = 0;
 					var remainingBytes = (contentLength - totalBytesRead);
-					bytesToRead = remainingBytes > (long)bufferSize ? bufferSize : (int)remainingBytes;
+					bytesToRead = remainingBytes > (long) bufferSize ? bufferSize : (int) remainingBytes;
 				}
-			}
-			else
-			{
-				await WriteResponseBodyChunked(inStreamReader, bufferSize, outStream, cancellationToken: cancellationToken);
 			}
 		}
 

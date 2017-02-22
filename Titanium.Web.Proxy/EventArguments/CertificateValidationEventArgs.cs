@@ -29,7 +29,10 @@ namespace Titanium.Web.Proxy.EventArguments
 		/// </summary>
 		public bool IsValid { get; set; }
 
-		public void Dispose()
+		/// <summary>
+		/// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+		/// </summary>
+		public virtual void Dispose()
 		{
 
 		}

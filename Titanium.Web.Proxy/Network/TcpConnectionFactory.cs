@@ -98,8 +98,8 @@ namespace Titanium.Web.Proxy.Network
 
 			return new TcpConnection
 			{
-				UpStreamHttpProxy = externalHttpProxy,
-				UpStreamHttpsProxy = externalHttpsProxy,
+				UpstreamHttpProxy = externalHttpProxy,
+				UpstreamHttpsProxy = externalHttpsProxy,
 				HostName = remoteHostName,
 				Port = remotePort,
 				IsHttps = isHttps,

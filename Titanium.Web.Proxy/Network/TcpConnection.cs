@@ -14,12 +14,12 @@ namespace Titanium.Web.Proxy.Network
 		/// <summary>
 		/// Gets or sets up stream HTTP proxy.
 		/// </summary>
-		internal ExternalProxy UpStreamHttpProxy { get; set; }
+		internal ExternalProxy UpstreamHttpProxy { get; set; }
 
 		/// <summary>
 		/// Gets or sets up stream HTTPS proxy.
 		/// </summary>
-		internal ExternalProxy UpStreamHttpsProxy { get; set; }
+		internal ExternalProxy UpstreamHttpsProxy { get; set; }
 
 		/// <summary>
 		/// Gets or sets the name of the host.
