@@ -10,7 +10,7 @@
 		/// </summary>
 		public OkResponse()
 		{
-			ResponseStatusCode = "200";
+			ResponseStatusCode = 200;
 			ResponseStatusDescription = "Ok";
 		}
 	}

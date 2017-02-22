@@ -240,7 +240,8 @@ namespace Titanium.Web.Proxy
 		{
 			RootCertificateName = rootCertificateName;
 			RootCertificateIssuerName = rootCertificateIssuerName;
-			//default values
+
+			// Default values
 			ConnectionTimeOutSeconds = 120;
 			CertificateCacheTimeOutMinutes = 60;
 

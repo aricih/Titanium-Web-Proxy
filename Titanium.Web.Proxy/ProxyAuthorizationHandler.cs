@@ -31,7 +31,7 @@ namespace Titanium.Web.Proxy
 				if (httpHeaders.All(t => t.Name != "Proxy-Authorization"))
 				{
 
-					await WriteResponseStatus(new Version(1, 1), "407",
+					await WriteResponseStatus(new Version(1, 1), 407,
 								"Proxy Authentication Required", clientStreamWriter);
 					var response = new Response
 					{
@@ -58,7 +58,7 @@ namespace Titanium.Web.Proxy
 				if (!headerValue.ToLower().StartsWith("basic"))
 				{
 					//Return not authorized
-					await WriteResponseStatus(new Version(1, 1), "407",
+					await WriteResponseStatus(new Version(1, 1), 407,
 						"Proxy Authentication Invalid", clientStreamWriter);
 
 					var response = new Response
@@ -81,7 +81,7 @@ namespace Titanium.Web.Proxy
 				if (decoded.Contains(":") == false)
 				{
 					//Return not authorized
-					await WriteResponseStatus(new Version(1, 1), "407",
+					await WriteResponseStatus(new Version(1, 1), 407,
 						"Proxy Authentication Invalid", clientStreamWriter);
 
 					var response = new Response
@@ -106,7 +106,7 @@ namespace Titanium.Web.Proxy
 			{
 				ExceptionFunc(new ProxyAuthorizationException("Error whilst authorizing request", e, httpHeaders));
 				//Return not authorized
-				await WriteResponseStatus(new Version(1, 1), "407",
+				await WriteResponseStatus(new Version(1, 1), 407,
 							 "Proxy Authentication Invalid", clientStreamWriter);
 
 				var response = new Response

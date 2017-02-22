@@ -45,8 +45,8 @@ namespace Titanium.Web.Proxy.Helpers
 			{
 				var lastChar = default(char);
 				var buffer = new byte[1];
-
-				while (await _stream.ReadAsync(buffer, 0, 1, cancellationToken: cancellationToken) > 0)
+				
+				while (await _stream.ReadAsync(buffer, 0, 1) > 0)
 				{
 					//if new line
 					if (lastChar == '\r' && buffer[0] == '\n')
@@ -60,7 +60,7 @@ namespace Titanium.Web.Proxy.Helpers
 						return _encoding.GetString(readBuffer.ToArray());
 					}
 
-					await readBuffer.WriteAsync(buffer, 0, 1, cancellationToken: cancellationToken);
+					await readBuffer.WriteAsync(buffer, 0, 1);
 
 					//store last char for new line comparison
 					lastChar = (char)buffer[0];

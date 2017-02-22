@@ -12,6 +12,8 @@ namespace Titanium.Web.Proxy.Network
 	/// <seealso cref="Titanium.Web.Proxy.Network.ICertificateCache" />
 	internal class CertificateCache : ConcurrentDictionary<string, CachedCertificate>, ICertificateCache
 	{
+		private const string WorldWideWebPrefix = "www.";
+
 		/// <summary>
 		/// Gets the common key.
 		/// </summary>
@@ -50,9 +52,9 @@ namespace Titanium.Web.Proxy.Network
 		/// <param name="certificate">The certificate.</param>
 		private void Add(string key, CachedCertificate certificate)
 		{
-			if (key.StartsWith("www.", StringComparison.InvariantCultureIgnoreCase))
+			if (key.StartsWith(WorldWideWebPrefix, StringComparison.InvariantCultureIgnoreCase))
 			{
-				key = key.Remove(0, 4);
+				key = key.Remove(0, WorldWideWebPrefix.Length);
 			}
 
 			TryAdd(key, certificate);

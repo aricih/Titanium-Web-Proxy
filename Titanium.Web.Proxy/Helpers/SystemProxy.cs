@@ -237,9 +237,10 @@ namespace Titanium.Web.Proxy.Helpers
 		/// <returns></returns>
 		private HttpSystemProxyValue ParseProxyValue(string value)
 		{
-			var tmp = Regex.Replace(value, @"\s+", " ").Trim().ToLower();
+			var tmp = Regex.Replace(value, @"\s+", " ").Trim();
 
-			if (!tmp.StartsWith("http=") && !tmp.StartsWith("https="))
+			if (!tmp.StartsWith("http=", StringComparison.InvariantCultureIgnoreCase) 
+				&& !tmp.StartsWith("https=", StringComparison.InvariantCultureIgnoreCase))
 			{
 				return null;
 			}
@@ -250,7 +251,7 @@ namespace Titanium.Web.Proxy.Helpers
 			{
 				HostName = endPoint.Split(':')[0],
 				Port = int.Parse(endPoint.Split(':')[1]),
-				IsHttps = tmp.StartsWith("https=")
+				IsHttps = tmp.StartsWith("https=", StringComparison.InvariantCultureIgnoreCase)
 			};
 		}
 

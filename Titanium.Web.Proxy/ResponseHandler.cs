@@ -32,11 +32,13 @@ namespace Titanium.Web.Proxy
 		{
 			HttpStatusCode httpStatusCode;
 
-			// Status code could not be parsed, no need to replay the request
-			if (!Enum.TryParse(args.WebSession.Response.ResponseStatusCode, out httpStatusCode))
+			// Status code is not defined, no need to replay the request
+			if (!Enum.IsDefined(typeof(HttpStatusCode), args.WebSession.Response.ResponseStatusCode))
 			{
 				return false;
 			}
+
+			httpStatusCode = (HttpStatusCode) args.WebSession.Response.ResponseStatusCode;
 
 			var isRequestReplayNeeded = httpStatusCode == HttpStatusCode.Unauthorized 
 				|| httpStatusCode == HttpStatusCode.ProxyAuthenticationRequired;
@@ -130,13 +132,13 @@ namespace Titanium.Web.Proxy
 				//Write back to client 100-conitinue response if that's what server returned
 				if (args.WebSession.Response.Is100Continue)
 				{
-					await WriteResponseStatus(args.WebSession.Response.HttpVersion, "100",
+					await WriteResponseStatus(args.WebSession.Response.HttpVersion, 100,
 							"Continue", args.ProxyClient.ClientStreamWriter);
 					await args.ProxyClient.ClientStreamWriter.WriteLineAsync();
 				}
 				else if (args.WebSession.Response.ExpectationFailed)
 				{
-					await WriteResponseStatus(args.WebSession.Response.HttpVersion, "417",
+					await WriteResponseStatus(args.WebSession.Response.HttpVersion, 417,
 							"Expectation Failed", args.ProxyClient.ClientStreamWriter);
 					await args.ProxyClient.ClientStreamWriter.WriteLineAsync();
 				}
@@ -229,13 +231,13 @@ namespace Titanium.Web.Proxy
 		/// Write response status
 		/// </summary>
 		/// <param name="version"></param>
-		/// <param name="code"></param>
+		/// <param name="statusCode"></param>
 		/// <param name="description"></param>
 		/// <param name="responseWriter"></param>
 		/// <returns></returns>
-		private async Task WriteResponseStatus(Version version, string code, string description, StreamWriter responseWriter)
+		private async Task WriteResponseStatus(Version version, int statusCode, string description, StreamWriter responseWriter)
 		{
-			await responseWriter.WriteLineAsync($"HTTP/{version.Major}.{version.Minor} {code} {description}");
+			await responseWriter.WriteLineAsync($"HTTP/{version.Major}.{version.Minor} {statusCode} {description}");
 		}
 
 		/// <summary>

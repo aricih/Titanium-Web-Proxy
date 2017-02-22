@@ -10,7 +10,7 @@
 		/// </summary>
 		public RedirectResponse()
 		{
-			ResponseStatusCode = "302";
+			ResponseStatusCode = 302;
 			ResponseStatusDescription = "Found";
 		}
 	}

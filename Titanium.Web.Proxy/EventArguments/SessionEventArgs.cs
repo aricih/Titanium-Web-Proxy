@@ -96,7 +96,8 @@ namespace Titanium.Web.Proxy.EventArguments
 		private async Task ReadRequestBody(CancellationToken cancellationToken = default(CancellationToken))
 		{
 			//GET request don't have a request body to read
-			if ((WebSession.Request.Method.ToUpper() != "POST" && WebSession.Request.Method.ToUpper() != "PUT"))
+			if (!WebSession.Request.Method.Equals("POST", StringComparison.InvariantCultureIgnoreCase) 
+				&& !WebSession.Request.Method.Equals("PUT", StringComparison.InvariantCultureIgnoreCase))
 			{
 				throw new BodyNotFoundException("Request don't have a body." +
 												"Please verify that this request is a Http POST/PUT and request " +
@@ -113,7 +114,7 @@ namespace Titanium.Web.Proxy.EventArguments
 					//For chunked request we need to read data as they arrive, until we reach a chunk end symbol
 					if (WebSession.Request.IsChunked)
 					{
-						await ProxyClient.ClientStreamReader.CopyBytesToStreamChunked(_bufferSize, requestBodyStream);
+						await ProxyClient.ClientStreamReader.CopyBytesToStreamChunked(_bufferSize, requestBodyStream, cancellationToken: cancellationToken);
 					}
 					else
 					{
@@ -164,7 +165,7 @@ namespace Titanium.Web.Proxy.EventArguments
 					//If chuncked the read chunk by chunk until we hit chunk end symbol
 					if (WebSession.Response.IsChunked)
 					{
-						await WebSession.ServerConnection.StreamReader.CopyBytesToStreamChunked(_bufferSize, responseBodyStream);
+						await WebSession.ServerConnection.StreamReader.CopyBytesToStreamChunked(_bufferSize, responseBodyStream, cancellationToken: cancellationToken);
 					}
 					else
 					{

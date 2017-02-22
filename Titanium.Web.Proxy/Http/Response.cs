@@ -15,7 +15,7 @@ namespace Titanium.Web.Proxy.Http
 		/// <summary>
 		/// Gets or sets the response status code.
 		/// </summary>
-		public string ResponseStatusCode { get; set; }
+		public int ResponseStatusCode { get; set; }
 
 		/// <summary>
 		/// Gets or sets the response status description.
