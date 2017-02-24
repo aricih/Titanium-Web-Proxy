@@ -25,7 +25,7 @@ namespace UnitTests.Titanium.Web.Proxy.Http
 		{
 			if (contentTypeHeaderValue != None)
 			{
-				_request.RequestHeaders["Content-Type"] = new HttpHeader("Content-Type", contentTypeHeaderValue);
+				_request.Headers["Content-Type"] = new HttpHeader("Content-Type", contentTypeHeaderValue);
 			}
 
 			return _request.ContentType;
@@ -47,10 +47,10 @@ namespace UnitTests.Titanium.Web.Proxy.Http
 			_request.ContentType = contentTypeHeaderValue;
 
 			// Does OrdinalIgnoreCase string comparer works properly; Content-Type -> content-type
-			Assert.AreEqual(_request.RequestHeaders.ContainsKey("content-type"), true);
+			Assert.AreEqual(_request.Headers.ContainsKey("content-type"), true);
 
 			// Does setter works properly
-			Assert.AreEqual(_request.RequestHeaders["Content-Type"].Value, contentTypeHeaderValue);
+			Assert.AreEqual(_request.Headers["Content-Type"].Value, contentTypeHeaderValue);
 		}
 
 		[TestCase(None, ExpectedResult = -1, TestName = "Works properly without Content-Length header")]
@@ -63,7 +63,7 @@ namespace UnitTests.Titanium.Web.Proxy.Http
 		{
 			if (contentLengthHeaderValue != None)
 			{
-				_request.RequestHeaders["Content-Length"] = new HttpHeader("Content-Length", contentLengthHeaderValue);
+				_request.Headers["Content-Length"] = new HttpHeader("Content-Length", contentLengthHeaderValue);
 			}
 
 			return _request.ContentLength;
@@ -86,13 +86,13 @@ namespace UnitTests.Titanium.Web.Proxy.Http
 			if (contentLengthHeaderValue >= 0)
 			{
 				// Does OrdinalIgnoreCase string comparer works properly; Content-Length -> content-length
-				Assert.AreEqual(_request.RequestHeaders.ContainsKey("content-length"), true);
+				Assert.AreEqual(_request.Headers.ContainsKey("content-length"), true);
 
-				Assert.AreEqual(_request.RequestHeaders["Content-Length"].Value, contentLengthHeaderValue.ToString());
+				Assert.AreEqual(_request.Headers["Content-Length"].Value, contentLengthHeaderValue.ToString());
 			}
 			else
 			{
-				Assert.AreEqual(_request.RequestHeaders.ContainsKey("content-length"), false);
+				Assert.AreEqual(_request.Headers.ContainsKey("content-length"), false);
 			}
 		}
 
@@ -105,7 +105,7 @@ namespace UnitTests.Titanium.Web.Proxy.Http
 		{
 			if (transferEncodingHeaderValue != None)
 			{
-				_request.RequestHeaders["Transfer-Encoding"] = new HttpHeader("Transfer-Encoding", transferEncodingHeaderValue);
+				_request.Headers["Transfer-Encoding"] = new HttpHeader("Transfer-Encoding", transferEncodingHeaderValue);
 			}
 
 			return _request.IsChunked;
@@ -120,20 +120,20 @@ namespace UnitTests.Titanium.Web.Proxy.Http
 		{
 			if (previouslyContainsHeader)
 			{
-				_request.RequestHeaders["Transfer-Encoding"] = new HttpHeader("Transfer-Encoding", "test");
+				_request.Headers["Transfer-Encoding"] = new HttpHeader("Transfer-Encoding", "test");
 			}
 
 			_request.IsChunked = isChunked;
 
 			if (isChunked)
 			{
-				Assert.AreEqual(_request.RequestHeaders.ContainsKey("transfer-encoding"), true);
-				Assert.AreEqual(_request.RequestHeaders["transfer-encoding"].Value, "chunked");
+				Assert.AreEqual(_request.Headers.ContainsKey("transfer-encoding"), true);
+				Assert.AreEqual(_request.Headers["transfer-encoding"].Value, "chunked");
 				Assert.AreEqual(_request.ContentLength, -1);
 			}
 			else
 			{
-				Assert.AreEqual(_request.RequestHeaders.ContainsKey("transfer-encoding"), false);
+				Assert.AreEqual(_request.Headers.ContainsKey("transfer-encoding"), false);
 			}
 		}
 
@@ -147,7 +147,7 @@ namespace UnitTests.Titanium.Web.Proxy.Http
 		{
 			if (expectHeaderValue != None)
 			{
-				_request.RequestHeaders["Expect"] = new HttpHeader("Expect", expectHeaderValue);
+				_request.Headers["Expect"] = new HttpHeader("Expect", expectHeaderValue);
 			}
 
 			return _request.ExpectContinue;

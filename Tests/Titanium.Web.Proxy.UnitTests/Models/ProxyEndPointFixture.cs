@@ -19,7 +19,7 @@ namespace UnitTests.Titanium.Web.Proxy.Models
 		{
 			var ipAddress = UnitTestHelpers.GetIpAddressFromEnum(ipAddressEnum);
 
-			return new ExplicitProxyEndPoint(ipAddress, 0, false).IpV6Enabled;
+			return new ExplicitProxyEndpoint(ipAddress, 0, false).IpV6Enabled;
 		}
 	}
 }

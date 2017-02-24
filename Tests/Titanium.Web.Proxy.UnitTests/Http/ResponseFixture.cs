@@ -19,7 +19,7 @@ namespace UnitTests.Titanium.Web.Proxy.Http
 
 			if (contentTypeHeaderValue != None)
 			{
-				response.ResponseHeaders["Content-Type"] = new HttpHeader("Content-Type", contentTypeHeaderValue);
+				response.Headers["Content-Type"] = new HttpHeader("Content-Type", contentTypeHeaderValue);
 			}
 
 			return response.ContentType;

@@ -78,6 +78,7 @@
     <Compile Include="Helpers\Network.cs" />
     <Compile Include="Authentication\AuthorizationHeaderCache.cs" />
     <Compile Include="Authentication\AuthenticationClient.cs" />
+    <Compile Include="Http\HttpMessage.cs" />
     <Compile Include="Models\EndPointType.cs" />
     <Compile Include="Models\ExplicitProxyEndpoint.cs" />
     <Compile Include="Models\HttpHeaderCollection.cs" />
@@ -92,8 +93,6 @@
     <Compile Include="Exceptions\ProxyAuthorizationException.cs" />
     <Compile Include="Exceptions\ProxyException.cs" />
     <Compile Include="Exceptions\ProxyHttpException.cs" />
-    <Compile Include="Extensions\HttpWebResponseExtensions.cs" />
-    <Compile Include="Extensions\HttpWebRequestExtensions.cs" />
     <Compile Include="Network\CertificateManager.cs" />
     <Compile Include="Helpers\Firefox.cs" />
     <Compile Include="Helpers\SystemProxy.cs" />

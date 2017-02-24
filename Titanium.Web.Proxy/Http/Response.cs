@@ -1,7 +1,5 @@
-﻿using System.Collections.Generic;
-using System.IO;
+﻿using System.IO;
 using System.Text;
-using Titanium.Web.Proxy.Models;
 using Titanium.Web.Proxy.Extensions;
 using System;
 
@@ -10,220 +8,47 @@ namespace Titanium.Web.Proxy.Http
 	/// <summary>
 	/// Http(s) response object
 	/// </summary>
-	public class Response
+	public class Response : HttpMessage
 	{
 		/// <summary>
 		/// Gets or sets the response status code.
 		/// </summary>
-		public int ResponseStatusCode { get; set; }
+		public int StatusCode { get; set; }
 
 		/// <summary>
 		/// Gets or sets the response status description.
 		/// </summary>
-		public string ResponseStatusDescription { get; set; }
+		public string StatusDescription { get; set; }
 
 		/// <summary>
 		/// Gets the response done timestamp.
 		/// </summary>
 		public DateTime ResponseReceived { get; internal set; }
 
-		internal Encoding Encoding => this.GetResponseCharacterEncoding();
-
-		/// <summary>
-		/// Content encoding for this response
-		/// </summary>
-		internal string ContentEncoding
-		{
-			get
-			{
-				var hasHeader = ResponseHeaders.ContainsKey("content-encoding");
-
-				if (!hasHeader)
-				{
-					return null;
-				}
-
-				var header = ResponseHeaders["content-encoding"];
-
-				return header.Value.Trim();
-			}
-		}
-
-		/// <summary>
-		/// Gets or sets the HTTP version.
-		/// </summary>
-		public Version HttpVersion { get; set; }
-
 		/// <summary>
 		/// Keep the connection alive?
 		/// </summary>
-		internal bool ResponseKeepAlive
+		internal bool KeepAlive
 		{
 			get
 			{
-				var hasHeader = ResponseHeaders.ContainsKey("connection");
+				var hasHeader = Headers.ContainsKey("connection");
 
 				if (!hasHeader)
 				{
 					return true;
 				}
 
-				var header = ResponseHeaders["connection"];
+				var header = Headers["connection"];
 
 				return !header.Value.ToLower().Contains("close");
 			}
 		}
 
 		/// <summary>
-		/// Content type of this response
-		/// </summary>
-		public string ContentType
-		{
-			get
-			{
-				var hasHeader = ResponseHeaders.ContainsKey("content-type");
-
-				if (!hasHeader)
-				{
-					return null;
-				}
-
-				var header = ResponseHeaders["content-type"];
-
-				return header.Value;
-			}
-		}
-
-		/// <summary>
-		/// Length of response body
-		/// </summary>
-		internal long ContentLength
-		{
-			get
-			{
-				var hasHeader = ResponseHeaders.ContainsKey("content-length");
-
-				if (hasHeader == false)
-				{
-					return -1;
-				}
-
-				var header = ResponseHeaders["content-length"];
-
-				long contentLen;
-				long.TryParse(header.Value, out contentLen);
-				if (contentLen >= 0)
-				{
-					return contentLen;
-				}
-
-				return -1;
-
-			}
-			set
-			{
-				var hasHeader = ResponseHeaders.ContainsKey("content-length");
-
-				if (value >= 0)
-				{
-					if (hasHeader)
-					{
-						var header = ResponseHeaders["content-length"];
-						header.Value = value.ToString();
-					}
-					else
-					{
-						ResponseHeaders.Add("content-length", new HttpHeader("content-length", value.ToString()));
-					}
-
-					IsChunked = false;
-				}
-				else
-				{
-					if (hasHeader)
-					{
-						ResponseHeaders.Remove("content-length");
-					}
-				}
-			}
-		}
-
-		/// <summary>
-		/// Response transfer-encoding is chunked?
-		/// </summary>
-		internal bool IsChunked
-		{
-			get
-			{
-				var hasHeader = ResponseHeaders.ContainsKey("transfer-encoding");
-
-				if (!hasHeader)
-				{
-					return false;
-				}
-
-				var header = ResponseHeaders["transfer-encoding"];
-
-				return header.Value.ToLower().Contains("chunked");
-			}
-			set
-			{
-				var hasHeader = ResponseHeaders.ContainsKey("transfer-encoding");
-
-				if (value)
-				{
-					if (hasHeader)
-					{
-						var header = ResponseHeaders["transfer-encoding"];
-						header.Value = "chunked";
-					}
-					else
-					{
-						ResponseHeaders.Add("transfer-encoding", new HttpHeader("transfer-encoding", "chunked"));
-					}
-
-					ContentLength = -1;
-				}
-				else
-				{
-					if (hasHeader)
-					{
-						ResponseHeaders.Remove("transfer-encoding");
-					}
-
-				}
-
-			}
-		}
-
-		/// <summary>
-		/// Collection of all response headers
-		/// </summary>
-		public Dictionary<string, HttpHeader> ResponseHeaders { get; set; }
-
-		/// <summary>
-		/// Non Unique headers
-		/// </summary>
-		public Dictionary<string, List<HttpHeader>> NonUniqueResponseHeaders { get; set; }
-
-
-		/// <summary>
 		/// Response network stream
 		/// </summary>
-		public Stream ResponseStream { get; set; }
-
-		/// <summary>
-		/// response body contenst as byte array
-		/// </summary>
-		internal byte[] ResponseBody { get; set; }
-
-		/// <summary>
-		/// response body as string
-		/// </summary>
-		internal string ResponseBodyString { get; set; }
-
-		internal bool ResponseBodyRead { get; set; }
-		internal bool ResponseLocked { get; set; }
+		public Stream NetworkStream { get; set; }
 
 		/// <summary>
 		/// Is response 100-continue
@@ -234,15 +59,6 @@ namespace Titanium.Web.Proxy.Http
 		/// expectation failed returned by server?
 		/// </summary>
 		public bool ExpectationFailed { get; internal set; }
-
-		/// <summary>
-		/// Initializes a new instance of the <see cref="Response"/> class.
-		/// </summary>
-		public Response()
-		{
-			ResponseHeaders = new Dictionary<string, HttpHeader>(StringComparer.OrdinalIgnoreCase);
-			NonUniqueResponseHeaders = new Dictionary<string, List<HttpHeader>>(StringComparer.OrdinalIgnoreCase);
-		}
 	}
 
 }
