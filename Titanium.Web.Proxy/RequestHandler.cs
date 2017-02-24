@@ -1,13 +1,13 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Authentication;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Titanium.Web.Proxy.EventArguments;
@@ -26,13 +26,13 @@ namespace Titanium.Web.Proxy
 	/// </summary>
 	public partial class ProxyServer
 	{
-		internal readonly Lazy<ConcurrentDictionary<Guid, string>> RequestBodyCache = new Lazy<ConcurrentDictionary<Guid, string>>(() => new ConcurrentDictionary<Guid, string>());
+		internal readonly ConcurrentDictionary<Guid, string> RequestBodyCache = new ConcurrentDictionary<Guid, string>();
 
 		//This is called when client is aware of proxy
 		//So for HTTPS requests client would send CONNECT header to negotiate a secure tcp tunnel via proxy
-		private async Task HandleClient(ExplicitProxyEndPoint endPoint, TcpClient tcpClient, CancellationToken cancellationToken = default(CancellationToken))
+		private async Task HandleClient(ExplicitProxyEndpoint endpoint, TcpClient tcpClient, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			var requestBeginTimestamp = DateTime.Now;
+			var requestBeginTimestamp = DateTime.UtcNow;
 
 			Stream clientStream = tcpClient.GetStream();
 
@@ -61,8 +61,8 @@ namespace Titanium.Web.Proxy
 					? new Uri($"http://{httpRequestHead.Url}")
 					: new Uri(httpRequestHead.Url);
 
-				//filter out excluded host names
-				var excluded = endPoint.ExcludedHttpsHostNameRegex?.Any(x => Regex.IsMatch(httpRemoteUri.Host, x)) ?? false;
+				// Filter out excluded host names
+				var excluded = endpoint.ExcludedHttpsHostNameRegex?.Any(httpRemoteUri.Host.Contains) ?? false;
 
 				List<HttpHeader> connectRequestHeaders = null;
 
@@ -70,11 +70,13 @@ namespace Titanium.Web.Proxy
 				if (httpRequestHead.Method.Equals("CONNECT", StringComparison.InvariantCultureIgnoreCase) && !excluded && httpRemoteUri.Port != 80)
 				{
 					httpRemoteUri = new Uri($"https://{httpRequestHead.Url}");
-					string tmpLine;
+
+					string line;
 					connectRequestHeaders = new List<HttpHeader>();
-					while (!string.IsNullOrEmpty(tmpLine = await clientStreamReader.ReadLineAsync(cancellationToken: cancellationToken)))
+
+					while (!string.IsNullOrEmpty(line = await clientStreamReader.ReadLineAsync(cancellationToken: cancellationToken)))
 					{
-						var header = tmpLine.Split(ProxyConstants.ColonSplit, 2);
+						var header = line.Split(ProxyConstants.ColonSplit, 2);
 
 						var newHeader = new HttpHeader(header[0], header[1]);
 						connectRequestHeaders.Add(newHeader);
@@ -94,7 +96,7 @@ namespace Titanium.Web.Proxy
 					{
 						sslStream = new SslStream(clientStream, true);
 
-						var certificate = _certificateCacheManager.CreateCertificate(httpRemoteUri.Host, false);
+						var certificate = _certificateCacheManager.GetOrCreateCertificate(httpRemoteUri.Host, false);
 
 						// Successfully managed to authenticate the client using the fake certificate
 						await sslStream.AuthenticateAsServerAsync(certificate, false, SupportedSslProtocols, false);
@@ -114,15 +116,15 @@ namespace Titanium.Web.Proxy
 						return;
 					}
 
-					//Now read the actual HTTPS request line
+					// Now read the actual HTTPS request line
 					httpCmd = await clientStreamReader.ReadLineAsync(cancellationToken: cancellationToken);
 				}
-				//Sorry cannot do a HTTPS request decrypt to port 80 at this time
 				else if (httpRequestHead.Method.Equals("CONNECT", StringComparison.InvariantCultureIgnoreCase))
 				{
-					//Cyphen out CONNECT request headers
+					// Get rid of CONNECT request headers
 					await clientStreamReader.ReadAllLinesAsync(cancellationToken: cancellationToken);
-					//write back successfull CONNECT response
+
+					// Write back successful CONNECT response
 					await WriteConnectResponse(clientStreamWriter, httpRequestHead.Version);
 
 					await TcpHelper.SendRaw(BufferSize, ConnectionTimeOutSeconds, httpRemoteUri,
@@ -144,7 +146,7 @@ namespace Titanium.Web.Proxy
 
 				// Create the request
 				await HandleHttpSessionRequest(tcpClient, httpCmd, clientStream, clientStreamReader, clientStreamWriter,
-					  httpRemoteUri.Scheme == Uri.UriSchemeHttps ? httpRemoteUri.Host : null, endPoint, connectRequestHeaders, requestBeginTimestamp, cancellationToken: cancellationToken);
+					  httpRemoteUri.Scheme == Uri.UriSchemeHttps ? httpRemoteUri.Host : null, endpoint, connectRequestHeaders, requestBeginTimestamp, cancellationToken: cancellationToken);
 			}
 			catch (Exception)
 			{
@@ -154,9 +156,9 @@ namespace Titanium.Web.Proxy
 
 		//This is called when this proxy acts as a reverse proxy (like a real http server)
 		//So for HTTPS requests we would start SSL negotiation right away without expecting a CONNECT request from client
-		private async Task HandleClient(TransparentProxyEndPoint endPoint, TcpClient tcpClient, CancellationToken cancellationToken = default(CancellationToken))
+		private async Task HandleClient(TransparentProxyEndpoint endpoint, TcpClient tcpClient, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			var requestBeginTimestamp = DateTime.Now;
+			var requestBeginTimestamp = DateTime.UtcNow;
 
 			Stream clientStream = tcpClient.GetStream();
 
@@ -166,12 +168,12 @@ namespace Titanium.Web.Proxy
 			CustomBinaryReader clientStreamReader = null;
 			StreamWriter clientStreamWriter = null;
 
-			if (endPoint.EnableSsl)
+			if (endpoint.EnableSsl)
 			{
 				var sslStream = new SslStream(clientStream, true);
 
 				//implement in future once SNI supported by SSL stream, for now use the same certificate
-				var certificate = _certificateCacheManager.CreateCertificate(endPoint.GenericCertificateName, false);
+				var certificate = _certificateCacheManager.GetOrCreateCertificate(endpoint.GenericCertificateName, false);
 
 				try
 				{
@@ -203,7 +205,7 @@ namespace Titanium.Web.Proxy
 
 			// Create the request
 			await HandleHttpSessionRequest(tcpClient, httpCmd, clientStream, clientStreamReader, clientStreamWriter,
-				 endPoint.EnableSsl ? endPoint.GenericCertificateName : null, endPoint, null, requestBeginTimestamp, cancellationToken: cancellationToken);
+				 endpoint.EnableSsl ? endpoint.GenericCertificateName : null, endpoint, null, requestBeginTimestamp, cancellationToken: cancellationToken);
 		}
 
 		/// <summary>
@@ -223,7 +225,7 @@ namespace Titanium.Web.Proxy
 			{
 				if (connection == null)
 				{
-					if (args.WebSession.Request.RequestUri.Scheme == "http")
+					if (args.WebSession.Request.TargetUri.Scheme == "http")
 					{
 						if (GetCustomUpStreamHttpProxyFunc != null)
 						{
@@ -242,7 +244,7 @@ namespace Titanium.Web.Proxy
 					args.CustomUpStreamHttpsProxyUsed = customUpStreamHttpsProxy;
 
 					connection = await _tcpConnectionFactory.CreateClient(BufferSize, ConnectionTimeOutSeconds,
-						args.WebSession.Request.RequestUri, args.WebSession.Request.RequestHeaders, args.WebSession.Request.HttpVersion,
+						args.WebSession.Request.TargetUri, args.WebSession.Request.Headers, args.WebSession.Request.HttpVersion,
 						args.IsHttps, SupportedSslProtocols,
 						ValidateServerCertificate,
 						SelectClientCertificate,
@@ -253,29 +255,29 @@ namespace Titanium.Web.Proxy
 
 				if (args.WebSession.Request.HasBody && args.WebSession.Request.RecordBody)
 				{
-					RequestBodyCache.Value[args.WebSession.RequestId] = await args.GetRequestBodyAsString(cancellationToken: cancellationToken);
+					RequestBodyCache[args.WebSession.RequestId] = await args.GetRequestBodyAsString(cancellationToken: cancellationToken);
 				}
 
-				args.WebSession.Request.RequestLocked = true;
+				args.WebSession.Request.Locked = true;
 
 				args.WebSession.Request.CancelRequest = cancellationToken.IsCancellationRequested;
 
-				//If request was cancelled by user then dispose the client
+				// If request was cancelled by user then dispose the client
 				if (args.WebSession.Request.CancelRequest)
 				{
 					Dispose(args.ProxyClient.ClientStream, args.ProxyClient.ClientStreamReader, args.ProxyClient.ClientStreamWriter, args);
 					return;
 				}
 
-				//if expect continue is enabled then send the headers first 
-				//and see if server would return 100 conitinue
+				// If expect continue is enabled then send the headers first 
+				// and see if server would return 100 conitinue
 				if (args.WebSession.Request.ExpectContinue)
 				{
 					args.WebSession.SetConnection(connection);
 					await args.WebSession.SendRequest(Enable100ContinueBehaviour, cancellationToken: cancellationToken);
 				}
 
-				//If 100 continue was the response inform that to the client
+				// If 100 continue was the response inform that to the client
 				if (Enable100ContinueBehaviour)
 				{
 					if (args.WebSession.Request.Is100Continue)
@@ -292,34 +294,34 @@ namespace Titanium.Web.Proxy
 					}
 				}
 
-				//If expect continue is not enabled then set the connectio and send request headers
+				// If expect continue is not enabled then set the connectio and send request headers
 				if (!args.WebSession.Request.ExpectContinue)
 				{
 					args.WebSession.SetConnection(connection);
 					await args.WebSession.SendRequest(Enable100ContinueBehaviour, cancellationToken: cancellationToken);
 				}
 
-				//If request was modified by user
-				if (args.WebSession.Request.RequestBodyRead)
+				// If request was modified by user
+				if (args.WebSession.Request.HasBodyRead)
 				{
 					if (args.WebSession.Request.ContentEncoding != null)
 					{
-						args.WebSession.Request.RequestBody =
-							await GetCompressedResponseBody(args.WebSession.Request.ContentEncoding, args.WebSession.Request.RequestBody, cancellationToken: cancellationToken);
+						args.WebSession.Request.Body =
+							await GetCompressedResponseBody(args.WebSession.Request.ContentEncoding, args.WebSession.Request.Body, cancellationToken: cancellationToken);
 					}
 
-					//chunked send is not supported as of now
-					args.WebSession.Request.ContentLength = args.WebSession.Request.RequestBody.Length;
+					// Chunked send is not supported as of now
+					args.WebSession.Request.ContentLength = args.WebSession.Request.Body.Length;
 
 					var newStream = args.WebSession.ServerConnection.Stream;
-					await newStream.WriteAsync(args.WebSession.Request.RequestBody, 0, args.WebSession.Request.RequestBody.Length, cancellationToken: cancellationToken);
+					await newStream.WriteAsync(args.WebSession.Request.Body, 0, args.WebSession.Request.Body.Length, cancellationToken: cancellationToken);
 				}
 				else
 				{
 					if (!args.WebSession.Request.ExpectationFailed)
 					{
-						//If its a post/put request, then read the client html body and send it to server
-						if (args.WebSession.Request.Method.Equals("POST", StringComparison.InvariantCultureIgnoreCase) 
+						// If its a post/put request, then read the client html body and send it to server
+						if (args.WebSession.Request.Method.Equals("POST", StringComparison.InvariantCultureIgnoreCase)
 							|| args.WebSession.Request.Method.Equals("PUT", StringComparison.InvariantCultureIgnoreCase))
 						{
 							await SendClientRequestBody(args, cancellationToken: cancellationToken);
@@ -327,14 +329,14 @@ namespace Titanium.Web.Proxy
 					}
 				}
 
-				//If not expectation failed response was returned by server then parse response
+				// If not expectation failed response was returned by server then parse response
 				if (!args.WebSession.Request.ExpectationFailed)
 				{
 					await HandleHttpSessionResponse(args, cancellationToken: cancellationToken);
 				}
 
-				//if connection is closing exit
-				if (args.WebSession.Response.ResponseKeepAlive == false)
+				// If connection is closing exit
+				if (!args.WebSession.Response.KeepAlive)
 				{
 					Dispose(args.ProxyClient.ClientStream, args.ProxyClient.ClientStreamReader, args.ProxyClient.ClientStreamWriter,
 						args);
@@ -364,7 +366,7 @@ namespace Titanium.Web.Proxy
 		/// <param name="clientStreamReader">The client stream reader.</param>
 		/// <param name="clientStreamWriter">The client stream writer.</param>
 		/// <param name="httpsHostName">Name of the HTTPS host.</param>
-		/// <param name="endPoint">The end point.</param>
+		/// <param name="endpoint">The end point.</param>
 		/// <param name="connectHeaders">The connect headers.</param>
 		/// <param name="requestBeginTimestamp">The request begin timestamp.</param>
 		/// <param name="customUpStreamHttpProxy">The custom up stream HTTP proxy.</param>
@@ -372,7 +374,7 @@ namespace Titanium.Web.Proxy
 		/// <param name="cancellationToken">The cancellation token.</param>
 		private async Task HandleHttpSessionRequest(TcpClient client, string httpCmd, Stream clientStream,
 			CustomBinaryReader clientStreamReader, StreamWriter clientStreamWriter, string httpsHostName,
-			ProxyEndPoint endPoint, List<HttpHeader> connectHeaders, DateTime requestBeginTimestamp,
+			ProxyEndpoint endpoint, List<HttpHeader> connectHeaders, DateTime requestBeginTimestamp,
 			ExternalProxy customUpStreamHttpProxy = null, ExternalProxy customUpStreamHttpsProxy = null,
 			CancellationToken cancellationToken = default(CancellationToken))
 		{
@@ -403,51 +405,55 @@ namespace Titanium.Web.Proxy
 					//If client is localhost get the process id
 					if (NetworkHelper.IsLocalIpAddress(remoteEndPoint.Address))
 					{
-						return NetworkHelper.GetProcessIdFromPort(remoteEndPoint.Port, endPoint.IpV6Enabled);
+						return NetworkHelper.GetProcessIdFromPort(remoteEndPoint.Port, endpoint.IpV6Enabled);
 					}
 
 					//can't access process Id of remote request from remote machine
 					return -1;
 				});
+
 				try
 				{
 					// Parse the first line of the HTTP request
 					var httpRequestHead = HttpRequestHeadParser.Parse(httpCmd);
 
 					//Read the request headers in to unique and non-unique header collections
-					string tmpLine;
-					while (!string.IsNullOrEmpty(tmpLine = await clientStreamReader.ReadLineAsync(cancellationToken: cancellationToken)))
+					string line;
+
+					while (!string.IsNullOrEmpty(line = await clientStreamReader.ReadLineAsync(cancellationToken: cancellationToken)))
 					{
-						var header = tmpLine.Split(ProxyConstants.ColonSplit, 2);
+						var header = line.Split(ProxyConstants.ColonSplit, 2);
 
 						var newHeader = new HttpHeader(header[0], header[1]);
 
-						//if header exist in non-unique header collection add it there
-						if (args.WebSession.Request.NonUniqueRequestHeaders.ContainsKey(newHeader.Name))
-						{
-							args.WebSession.Request.NonUniqueRequestHeaders[newHeader.Name].Add(newHeader);
-						}
-						//if header is alread in unique header collection then move both to non-unique collection
-						else if (args.WebSession.Request.RequestHeaders.ContainsKey(newHeader.Name))
-						{
-							var existing = args.WebSession.Request.RequestHeaders[newHeader.Name];
+						List<HttpHeader> existingNonUniqueHeaders;
+						HttpHeader exisitingHeader;
 
-							var nonUniqueHeaders = new List<HttpHeader> { existing, newHeader };
-
-							args.WebSession.Request.NonUniqueRequestHeaders.Add(newHeader.Name, nonUniqueHeaders);
-							args.WebSession.Request.RequestHeaders.Remove(newHeader.Name);
+						// If header exist in non-unique header collection add it there
+						if (args.WebSession.Request.NonUniqueHeaders.TryGetValue(newHeader.Name, out existingNonUniqueHeaders)
+							&& existingNonUniqueHeaders != null)
+						{
+							existingNonUniqueHeaders.Add(newHeader);
 						}
-						//add to unique header collection
+						// If header is alread in unique header collection then move both to non-unique collection
+						else if (args.WebSession.Request.Headers.TryGetValue(newHeader.Name, out exisitingHeader)
+								 && exisitingHeader != null)
+						{
+							var nonUniqueHeaders = new List<HttpHeader> { exisitingHeader, newHeader };
+
+							args.WebSession.Request.NonUniqueHeaders.Add(newHeader.Name, nonUniqueHeaders);
+							args.WebSession.Request.Headers.Remove(newHeader.Name);
+						}
 						else
 						{
-							args.WebSession.Request.RequestHeaders.Add(newHeader.Name, newHeader);
+							args.WebSession.Request.Headers.Add(newHeader.Name, newHeader);
 						}
 					}
 
 					var httpRemoteUri = new Uri(httpsHostName == null ? httpRequestHead.Url
 						: string.Concat("https://", args.WebSession.Request.Host ?? httpsHostName, httpRequestHead.Url));
 
-					args.WebSession.Request.RequestUri = httpRemoteUri;
+					args.WebSession.Request.TargetUri = httpRemoteUri;
 
 					args.WebSession.Request.Method = httpRequestHead.Method.Trim().ToUpper();
 					args.WebSession.Request.HttpVersion = httpRequestHead.Version;
@@ -455,15 +461,15 @@ namespace Titanium.Web.Proxy
 					args.ProxyClient.ClientStreamReader = clientStreamReader;
 					args.ProxyClient.ClientStreamWriter = clientStreamWriter;
 
-					if (httpsHostName == null && (await CheckAuthorization(clientStreamWriter, args.WebSession.Request.RequestHeaders.Values) == false))
+					if (httpsHostName == null && (await CheckAuthorization(clientStreamWriter, args.WebSession.Request.Headers.Values) == false))
 					{
 
 						Dispose(clientStream, clientStreamReader, clientStreamWriter, args);
 						break;
 					}
 
-					PrepareRequestHeaders(args.WebSession.Request.RequestHeaders, args.WebSession);
-					args.WebSession.Request.Host = args.WebSession.Request.RequestUri.Authority;
+					PrepareRequestHeaders(args.WebSession.Request.Headers, args.WebSession);
+					args.WebSession.Request.Host = args.WebSession.Request.TargetUri.Authority;
 
 					//If user requested interception do it
 					if (BeforeRequest != null)
@@ -476,14 +482,16 @@ namespace Titanium.Web.Proxy
 							handlerTasks[i] = ((Func<object, SessionEventArgs, CancellationToken, Task>)invocationList[i])(null, args, cancellationToken);
 						}
 
-						await Task.WhenAll(handlerTasks);
+						await Task.WhenAny(
+							Task.WhenAll(handlerTasks),
+							Task.Delay(TaskTimeout, cancellationToken: cancellationToken));
 					}
 
 					//if upgrading to websocket then relay the requet without reading the contents
 					if (args.WebSession.Request.UpgradeToWebSocket)
 					{
 						await TcpHelper.SendRaw(BufferSize, ConnectionTimeOutSeconds, httpRemoteUri,
-												httpCmd, httpRequestHead.Version, args.WebSession.Request.RequestHeaders, args.IsHttps,
+												httpCmd, httpRequestHead.Version, args.WebSession.Request.Headers, args.IsHttps,
 												SupportedSslProtocols, ValidateServerCertificate,
 												SelectClientCertificate,
 												clientStream, _tcpConnectionFactory, cancellationToken: cancellationToken);
@@ -503,7 +511,7 @@ namespace Titanium.Web.Proxy
 					}
 
 					//if connection is closing exit
-					if (args.WebSession.Response.ResponseKeepAlive == false)
+					if (args.WebSession.Response.KeepAlive == false)
 					{
 						break;
 					}
@@ -518,7 +526,6 @@ namespace Titanium.Web.Proxy
 					Dispose(clientStream, clientStreamReader, clientStreamWriter, args);
 					break;
 				}
-
 			}
 
 			connection?.Dispose();
@@ -532,8 +539,21 @@ namespace Titanium.Web.Proxy
 		/// <returns></returns>
 		private async Task WriteConnectResponse(StreamWriter clientStreamWriter, Version httpVersion)
 		{
-			await clientStreamWriter.WriteLineAsync($"HTTP/{httpVersion.Major}.{httpVersion.Minor} 200 Connection established");
-			await clientStreamWriter.WriteLineAsync($"Timestamp: {DateTime.Now}");
+			// Write HTTP response
+			await clientStreamWriter.WriteAsync("HTTP/");
+			await clientStreamWriter.WriteAsync(httpVersion.Major.ToString());
+			await clientStreamWriter.WriteAsync(".");
+			await clientStreamWriter.WriteAsync(httpVersion.Minor.ToString());
+			await clientStreamWriter.WriteAsync(ProxyConstants.Space);
+			await clientStreamWriter.WriteAsync("200 Connection established");
+			await clientStreamWriter.WriteAsync(ProxyConstants.CoreNewLine);
+
+			// Write timestamp header
+			await clientStreamWriter.WriteAsync("Timestamp:");
+			await clientStreamWriter.WriteAsync(ProxyConstants.Space);
+			await clientStreamWriter.WriteAsync(DateTime.Now.ToString(CultureInfo.InvariantCulture));
+			await clientStreamWriter.WriteAsync(ProxyConstants.CoreNewLine);
+
 			await clientStreamWriter.WriteLineAsync();
 			await clientStreamWriter.FlushAsync();
 		}
@@ -556,7 +576,7 @@ namespace Titanium.Web.Proxy
 			}
 
 			FixProxyHeaders(requestHeaders);
-			webRequest.Request.RequestHeaders = requestHeaders;
+			webRequest.Request.Headers = requestHeaders;
 		}
 
 		/// <summary>

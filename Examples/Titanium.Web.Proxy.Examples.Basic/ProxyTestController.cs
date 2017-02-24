@@ -35,7 +35,7 @@ namespace Titanium.Web.Proxy.Examples.Basic
 			//Exclude Https addresses you don't want to proxy
 			//Usefull for clients that use certificate pinning
 			//for example dropbox.com
-			var explicitEndPoint = new ExplicitProxyEndPoint(IPAddress.Any, 8000, true)
+			var explicitEndPoint = new ExplicitProxyEndpoint(IPAddress.Any, 8000, true)
 			{
 				ExcludedHttpsHostNameRegex = new List<string>() { "localhost" }
 			};

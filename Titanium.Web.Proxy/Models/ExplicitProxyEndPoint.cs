@@ -7,7 +7,7 @@ namespace Titanium.Web.Proxy.Models
 	/// A proxy endpoint that the client is aware of 
 	/// So client application know that it is communicating with a proxy server
 	/// </summary>
-	public class ExplicitProxyEndPoint : ProxyEndPoint
+	public class ExplicitProxyEndpoint : ProxyEndpoint
 	{
 		internal bool IsSystemHttpProxy { get; set; }
 
@@ -19,15 +19,20 @@ namespace Titanium.Web.Proxy.Models
 		public List<string> ExcludedHttpsHostNameRegex { get; set; }
 
 		/// <summary>
-		/// Initializes a new instance of the <see cref="ExplicitProxyEndPoint"/> class.
+		/// Initializes a new instance of the <see cref="ExplicitProxyEndpoint"/> class.
 		/// </summary>
 		/// <param name="ipAddress">The ip address.</param>
 		/// <param name="port">The port.</param>
 		/// <param name="enableSsl">if set to <c>true</c> [enable SSL].</param>
-		public ExplicitProxyEndPoint(IPAddress ipAddress, int port, bool enableSsl)
+		public ExplicitProxyEndpoint(IPAddress ipAddress, int port, bool enableSsl)
 			: base(ipAddress, port, enableSsl)
 		{
 
 		}
+
+		/// <summary>
+		/// Gets the endpoint type.
+		/// </summary>
+		internal override EndpointType EndpointType => EndpointType.Explicit;
 	}
 }

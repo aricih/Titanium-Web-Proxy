@@ -7,15 +7,15 @@ namespace Titanium.Web.Proxy.Models
 	/// <summary>
 	/// An abstract endpoint where the proxy listens
 	/// </summary>
-	public abstract class ProxyEndPoint
+	public abstract class ProxyEndpoint
 	{
 		/// <summary>
-		/// Initializes a new instance of the <see cref="ProxyEndPoint"/> class.
+		/// Initializes a new instance of the <see cref="ProxyEndpoint"/> class.
 		/// </summary>
 		/// <param name="ipAddress">The ip address.</param>
 		/// <param name="port">The port.</param>
 		/// <param name="enableSsl">if set to <c>true</c> [enable SSL].</param>
-		protected ProxyEndPoint(IPAddress ipAddress, int port, bool enableSsl)
+		protected ProxyEndpoint(IPAddress ipAddress, int port, bool enableSsl)
 		{
 			IpAddress = ipAddress;
 			Port = port;
@@ -53,5 +53,10 @@ namespace Titanium.Web.Proxy.Models
 		/// Gets or sets the cancellation token.
 		/// </summary>
 		internal CancellationToken CancellationToken { get; set; }
+
+		/// <summary>
+		/// Gets the endpoint type.
+		/// </summary>
+		internal abstract EndpointType EndpointType { get; }
 	}
 }

@@ -14,6 +14,7 @@ using Titanium.Web.Proxy.Exceptions;
 using Titanium.Web.Proxy.Extensions;
 using Titanium.Web.Proxy.Http;
 using Titanium.Web.Proxy.Helpers;
+using Titanium.Web.Proxy.Shared;
 
 namespace Titanium.Web.Proxy
 {
@@ -30,21 +31,19 @@ namespace Titanium.Web.Proxy
 		/// <returns>Whether authentication is requred for the current session or not.</returns>
 		public async Task<bool> HandleAuthenticationRequired(SessionEventArgs args, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			HttpStatusCode httpStatusCode;
-
 			// Status code is not defined, no need to replay the request
-			if (!Enum.IsDefined(typeof(HttpStatusCode), args.WebSession.Response.ResponseStatusCode))
+			if (!Enum.IsDefined(typeof(HttpStatusCode), args.WebSession.Response.StatusCode))
 			{
 				return false;
 			}
 
-			httpStatusCode = (HttpStatusCode) args.WebSession.Response.ResponseStatusCode;
+			var httpStatusCode = (HttpStatusCode) args.WebSession.Response.StatusCode;
 
 			var isRequestReplayNeeded = httpStatusCode == HttpStatusCode.Unauthorized 
 				|| httpStatusCode == HttpStatusCode.ProxyAuthenticationRequired;
 
 			var credentialHeader =
-				args.WebSession.Response.ResponseHeaders.Values.FirstOrDefault(
+				args.WebSession.Response.Headers.Values.FirstOrDefault(
 					header => header.Name.EndsWith("-Authenticate", StringComparison.CurrentCultureIgnoreCase));
 
 			// Request must be authenticated
@@ -57,7 +56,7 @@ namespace Titanium.Web.Proxy
 
 				var credentialProvider = (isProxified && httpStatusCode != HttpStatusCode.Unauthorized)
 					? (ICredentialProvider)new ProxyCredentialProvider(upstreamProxy)
-					: new HttpCredentialProvider(args.WebSession.Request.RequestUri.Host);
+					: new HttpCredentialProvider(args.WebSession.Request.TargetUri.Host);
 
 				// If we're stuck at same http status code instead of preauthentication
 				// then preauthentication is failing most likely because of an expired authorization token in cache
@@ -66,10 +65,10 @@ namespace Titanium.Web.Proxy
 					&& args.LastStatusCode == httpStatusCode;
 
 				await AuthenticationClient.Authenticate(
-					args.WebSession.Request.RequestUri,
+					args.WebSession.Request.TargetUri,
 					credentialHeader,
 					credentialProvider,
-					args.WebSession.Request.RequestHeaders,
+					args.WebSession.Request.Headers,
 					preAuthenticationFailed,
 					(args.ProxyClient.ClientStream as SslStream)?.TransportContext,
 					cancellationToken: cancellationToken);
@@ -95,15 +94,15 @@ namespace Titanium.Web.Proxy
 
 				args.WebSession.Response.ResponseReceived = DateTime.Now;
 
-				if (!args.WebSession.Response.ResponseBodyRead)
+				if (!args.WebSession.Response.HasBodyRead)
 				{
-					args.WebSession.Response.ResponseStream = args.WebSession.ServerConnection.Stream;
+					args.WebSession.Response.NetworkStream = args.WebSession.ServerConnection.Stream;
 				}
 
 				args.ReRequest = await HandleAuthenticationRequired(args, cancellationToken: cancellationToken);
 
 				//If user requested call back then do it
-				if (BeforeResponse != null && !args.WebSession.Response.ResponseLocked)
+				if (BeforeResponse != null && !args.WebSession.Response.Locked)
 				{
 					var invocationList = BeforeResponse.GetInvocationList();
 					var handlerTasks = new Task[invocationList.Length];
@@ -118,7 +117,9 @@ namespace Titanium.Web.Proxy
 						handlerTasks[i] = ((Func<object, SessionEventArgs, CancellationToken, Task>)invocationList[i])(this, args, cancellationToken);
 					}
 
-					await Task.WhenAll(handlerTasks);
+					await Task.WhenAny(
+						Task.WhenAll(handlerTasks),
+						Task.Delay(TaskTimeout, cancellationToken: cancellationToken));
 				}
 
 				if (args.ReRequest)
@@ -127,7 +128,7 @@ namespace Titanium.Web.Proxy
 					return;
 				}
 
-				args.WebSession.Response.ResponseLocked = true;
+				args.WebSession.Response.Locked = true;
 
 				//Write back to client 100-conitinue response if that's what server returned
 				if (args.WebSession.Response.Is100Continue)
@@ -144,21 +145,21 @@ namespace Titanium.Web.Proxy
 				}
 
 				//Write back response status to client
-				await WriteResponseStatus(args.WebSession.Response.HttpVersion, args.WebSession.Response.ResponseStatusCode,
-							  args.WebSession.Response.ResponseStatusDescription, args.ProxyClient.ClientStreamWriter);
+				await WriteResponseStatus(args.WebSession.Response.HttpVersion, args.WebSession.Response.StatusCode,
+							  args.WebSession.Response.StatusDescription, args.ProxyClient.ClientStreamWriter);
 
-				if (args.WebSession.Response.ResponseBodyRead)
+				if (args.WebSession.Response.HasBodyRead)
 				{
 					var isChunked = args.WebSession.Response.IsChunked;
 					var contentEncoding = args.WebSession.Response.ContentEncoding;
 
 					if (contentEncoding != null)
 					{
-						args.WebSession.Response.ResponseBody = await GetCompressedResponseBody(contentEncoding, args.WebSession.Response.ResponseBody, cancellationToken: cancellationToken);
+						args.WebSession.Response.Body = await GetCompressedResponseBody(contentEncoding, args.WebSession.Response.Body, cancellationToken: cancellationToken);
 
 						if (isChunked == false)
 						{
-							args.WebSession.Response.ContentLength = args.WebSession.Response.ResponseBody.Length;
+							args.WebSession.Response.ContentLength = args.WebSession.Response.Body.Length;
 						}
 						else
 						{
@@ -167,7 +168,7 @@ namespace Titanium.Web.Proxy
 					}
 
 					await WriteResponseHeaders(args.ProxyClient.ClientStreamWriter, args.WebSession.Response);
-					await args.ProxyClient.ClientStream.WriteResponseBody(args.WebSession.Response.ResponseBody, isChunked, cancellationToken: cancellationToken);
+					await args.ProxyClient.ClientStream.WriteResponseBody(args.WebSession.Response.Body, isChunked, cancellationToken: cancellationToken);
 				}
 				else
 				{
@@ -176,14 +177,14 @@ namespace Titanium.Web.Proxy
 					//Write body only if response is chunked or content length >0
 					//Is none are true then check if connection:close header exist, if so write response until server or client terminates the connection
 					if (args.WebSession.Response.IsChunked || args.WebSession.Response.ContentLength > 0
-						|| !args.WebSession.Response.ResponseKeepAlive)
+						|| !args.WebSession.Response.KeepAlive)
 					{
 						await args.WebSession.ServerConnection.StreamReader
 							.WriteResponseBody(BufferSize, args.ProxyClient.ClientStream, args.WebSession.Response.IsChunked, args.WebSession.Response.ContentLength, cancellationToken: cancellationToken);
 					}
 					//write response if connection:keep-alive header exist and when version is http/1.0
 					//Because in Http 1.0 server can return a response without content-length (expectation being client would read until end of stream)
-					else if (args.WebSession.Response.ResponseKeepAlive && args.WebSession.Response.HttpVersion.Minor == 0)
+					else if (args.WebSession.Response.KeepAlive && args.WebSession.Response.HttpVersion.Minor == 0)
 					{
 						await args.WebSession.ServerConnection.StreamReader
 							.WriteResponseBody(BufferSize, args.ProxyClient.ClientStream, args.WebSession.Response.IsChunked, args.WebSession.Response.ContentLength, cancellationToken: cancellationToken);
@@ -206,7 +207,7 @@ namespace Titanium.Web.Proxy
 				if (args.WebSession.Request.HasBody && args.WebSession.Request.RecordBody)
 				{
 					string recordedBody;
-					RequestBodyCache.Value.TryRemove(args.WebSession.RequestId, out recordedBody);
+					RequestBodyCache.TryRemove(args.WebSession.RequestId, out recordedBody);
 				}
 
 				args.Dispose();
@@ -237,7 +238,15 @@ namespace Titanium.Web.Proxy
 		/// <returns></returns>
 		private async Task WriteResponseStatus(Version version, int statusCode, string description, StreamWriter responseWriter)
 		{
-			await responseWriter.WriteLineAsync($"HTTP/{version.Major}.{version.Minor} {statusCode} {description}");
+			await responseWriter.WriteLineAsync("HTTP/");
+			await responseWriter.WriteLineAsync(version.Major.ToString());
+			await responseWriter.WriteLineAsync(".");
+			await responseWriter.WriteLineAsync(version.Minor.ToString());
+			await responseWriter.WriteLineAsync(ProxyConstants.Space);
+			await responseWriter.WriteLineAsync(statusCode.ToString());
+			await responseWriter.WriteLineAsync(ProxyConstants.Space);
+			await responseWriter.WriteLineAsync(description);
+			await responseWriter.WriteLineAsync(ProxyConstants.CoreNewLine);
 		}
 
 		/// <summary>
@@ -247,15 +256,15 @@ namespace Titanium.Web.Proxy
 		/// <param name="response">The response.</param>
 		private async Task WriteResponseHeaders(StreamWriter responseWriter, Response response)
 		{
-			FixProxyHeaders(response.ResponseHeaders);
+			FixProxyHeaders(response.Headers);
 
-			foreach (var header in response.ResponseHeaders)
+			foreach (var header in response.Headers)
 			{
 				await responseWriter.WriteLineAsync(header.Value.ToString());
 			}
 
 			//write non unique request headers
-			foreach (var headerItem in response.NonUniqueResponseHeaders)
+			foreach (var headerItem in response.NonUniqueHeaders)
 			{
 				var headers = headerItem.Value;
 				foreach (var header in headers)

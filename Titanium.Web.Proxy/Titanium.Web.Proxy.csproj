@@ -78,9 +78,10 @@
     <Compile Include="Helpers\Network.cs" />
     <Compile Include="Authentication\AuthorizationHeaderCache.cs" />
     <Compile Include="Authentication\AuthenticationClient.cs" />
-    <Compile Include="Models\ExplicitProxyEndPoint.cs" />
+    <Compile Include="Models\EndPointType.cs" />
+    <Compile Include="Models\ExplicitProxyEndpoint.cs" />
     <Compile Include="Models\HttpHeaderCollection.cs" />
-    <Compile Include="Models\TransparentProxyEndPoint.cs" />
+    <Compile Include="Models\TransparentProxyEndpoint.cs" />
     <Compile Include="Network\CachedCertificate.cs" />
     <Compile Include="Network\CertificateCache.cs" />
     <Compile Include="Network\CertificateMaker.cs" />
@@ -96,7 +97,7 @@
     <Compile Include="Network\CertificateManager.cs" />
     <Compile Include="Helpers\Firefox.cs" />
     <Compile Include="Helpers\SystemProxy.cs" />
-    <Compile Include="Models\ProxyEndPoint.cs" />
+    <Compile Include="Models\ProxyEndpoint.cs" />
     <Compile Include="Http\Request.cs" />
     <Compile Include="Http\Response.cs" />
     <Compile Include="Models\ExternalProxy.cs" />

@@ -189,7 +189,7 @@ namespace Titanium.Web.Proxy
 		/// <summary>
 		/// A list of IpAddress and port this proxy is listening to
 		/// </summary>
-		public List<ProxyEndPoint> ProxyEndPoints { get; set; }
+		public List<ProxyEndpoint> ProxyEndPoints { get; set; }
 
 		/// <summary>
 		/// List of supported Ssl versions
@@ -241,11 +241,7 @@ namespace Titanium.Web.Proxy
 			RootCertificateName = rootCertificateName;
 			RootCertificateIssuerName = rootCertificateIssuerName;
 
-			// Default values
-			ConnectionTimeOutSeconds = 120;
-			CertificateCacheTimeOutMinutes = 60;
-
-			ProxyEndPoints = new List<ProxyEndPoint>();
+			ProxyEndPoints = new List<ProxyEndpoint>();
 
 			var tcpClientFactory = new TcpClientFactory();
 			_tcpConnectionFactory = new TcpConnectionFactory(tcpClientFactory);
@@ -269,23 +265,23 @@ namespace Titanium.Web.Proxy
 		/// <summary>
 		/// Add a proxy end point
 		/// </summary>
-		/// <param name="endPoint">The end point.</param>
+		/// <param name="endpoint">The end point.</param>
 		/// <param name="cancellationToken">The cancellation token. 
 		/// This token is effective if only the endpoint is added after the proxy server is started.
 		/// Otherwise endpoints will be using the token which is passed on Start call.</param>
 		/// <exception cref="Exception">Cannot add another endpoint to same port and ip address</exception>
-		public void AddEndPoint(ProxyEndPoint endPoint, CancellationToken cancellationToken = default(CancellationToken))
+		public void AddEndPoint(ProxyEndpoint endpoint, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			if (ProxyEndPoints.Any(x => x.IpAddress.Equals(endPoint.IpAddress) && endPoint.Port != 0 && x.Port == endPoint.Port))
+			if (ProxyEndPoints.Any(x => x.IpAddress.Equals(endpoint.IpAddress) && endpoint.Port != 0 && x.Port == endpoint.Port))
 			{
 				throw new Exception("Cannot add another endpoint to same port & ip address");
 			}
 
-			ProxyEndPoints.Add(endPoint);
+			ProxyEndPoints.Add(endpoint);
 
 			if (_proxyRunning)
 			{
-				Listen(endPoint, cancellationToken: cancellationToken);
+				Listen(endpoint, cancellationToken: cancellationToken);
 			}
 		}
 
@@ -293,37 +289,37 @@ namespace Titanium.Web.Proxy
 		/// Remove a proxy end point
 		/// Will throw error if the end point does'nt exist 
 		/// </summary>
-		/// <param name="endPoint"></param>
-		public void RemoveEndPoint(ProxyEndPoint endPoint)
+		/// <param name="endpoint"></param>
+		public void RemoveEndPoint(ProxyEndpoint endpoint)
 		{
-			if (ProxyEndPoints.Contains(endPoint) == false)
+			if (ProxyEndPoints.Contains(endpoint) == false)
 			{
 				throw new Exception("Cannot remove endPoints not added to proxy");
 			}
 
-			ProxyEndPoints.Remove(endPoint);
+			ProxyEndPoints.Remove(endpoint);
 
 			if (_proxyRunning)
 			{
-				QuitListen(endPoint);
+				QuitListen(endpoint);
 			}
 		}
 
 		/// <summary>
 		/// Set the given explicit end point as the default proxy server for current machine
 		/// </summary>
-		/// <param name="endPoint"></param>
-		public void SetAsSystemHttpProxy(ExplicitProxyEndPoint endPoint)
+		/// <param name="endpoint"></param>
+		public void SetAsSystemHttpProxy(ExplicitProxyEndpoint endpoint)
 		{
-			ValidateEndPointAsSystemProxy(endPoint);
+			ValidateEndPointAsSystemProxy(endpoint);
 
 			//clear any settings previously added
-			ProxyEndPoints.OfType<ExplicitProxyEndPoint>().ToList().ForEach(x => x.IsSystemHttpProxy = false);
+			ProxyEndPoints.OfType<ExplicitProxyEndpoint>().ToList().ForEach(x => x.IsSystemHttpProxy = false);
 
 			_systemProxySettingsManager.SetHttpProxy(
-				Equals(endPoint.IpAddress, IPAddress.Any) | Equals(endPoint.IpAddress, IPAddress.Loopback) ? "127.0.0.1" : endPoint.IpAddress.ToString(), endPoint.Port);
+				Equals(endpoint.IpAddress, IPAddress.Any) | Equals(endpoint.IpAddress, IPAddress.Loopback) ? "127.0.0.1" : endpoint.IpAddress.ToString(), endpoint.Port);
 
-			endPoint.IsSystemHttpProxy = true;
+			endpoint.IsSystemHttpProxy = true;
 #if !DEBUG
 			_firefoxProxySettingsManager.AddProxyToFirefoxConfiguration();
 #endif
@@ -332,30 +328,30 @@ namespace Titanium.Web.Proxy
 		/// <summary>
 		/// Set the given explicit end point as the default proxy server for current machine
 		/// </summary>
-		/// <param name="endPoint"></param>
-		public void SetAsSystemHttpsProxy(ExplicitProxyEndPoint endPoint)
+		/// <param name="endpoint"></param>
+		public void SetAsSystemHttpsProxy(ExplicitProxyEndpoint endpoint)
 		{
-			ValidateEndPointAsSystemProxy(endPoint);
+			ValidateEndPointAsSystemProxy(endpoint);
 
-			if (!endPoint.EnableSsl)
+			if (!endpoint.EnableSsl)
 			{
 				throw new Exception("Endpoint do not support Https connections");
 			}
 
 			//clear any settings previously added
-			ProxyEndPoints.OfType<ExplicitProxyEndPoint>().ToList().ForEach(x => x.IsSystemHttpsProxy = false);
+			ProxyEndPoints.OfType<ExplicitProxyEndpoint>().ToList().ForEach(x => x.IsSystemHttpsProxy = false);
 
 
 			//If certificate was trusted by the machine
 			if (_certValidated)
 			{
 				_systemProxySettingsManager.SetHttpsProxy(
-				   Equals(endPoint.IpAddress, IPAddress.Any) | Equals(endPoint.IpAddress, IPAddress.Loopback) ? "127.0.0.1" : endPoint.IpAddress.ToString(),
-					endPoint.Port);
+				   Equals(endpoint.IpAddress, IPAddress.Any) | Equals(endpoint.IpAddress, IPAddress.Loopback) ? "127.0.0.1" : endpoint.IpAddress.ToString(),
+					endpoint.Port);
 			}
 
 
-			endPoint.IsSystemHttpsProxy = true;
+			endpoint.IsSystemHttpsProxy = true;
 
 #if !DEBUG
 			_firefoxProxySettingsManager.AddProxyToFirefoxConfiguration();
@@ -398,10 +394,7 @@ namespace Titanium.Web.Proxy
 				throw new Exception("Proxy is already running.");
 			}
 
-			if (RequestBodyCache.IsValueCreated)
-			{
-				RequestBodyCache.Value.Clear();
-			}
+			RequestBodyCache.Clear();
 
 			if (cancellationToken.IsCancellationRequested)
 			{
@@ -464,7 +457,7 @@ namespace Titanium.Web.Proxy
 				// Use built-in WebProxy class to handle PAC/WAPD scripts.
 				var systemProxyResolver = new WebProxy();
 
-				var systemProxyUri = systemProxyResolver.GetProxy(sessionEventArgs.WebSession.Request.RequestUri);
+				var systemProxyUri = systemProxyResolver.GetProxy(sessionEventArgs.WebSession.Request.TargetUri);
 
 				systemProxy = systemProxyUri.Host.Equals(sessionEventArgs.WebSession.Request.Host,
 					StringComparison.InvariantCultureIgnoreCase)
@@ -490,7 +483,7 @@ namespace Titanium.Web.Proxy
 				throw new Exception("Proxy is not running.");
 			}
 
-			var setAsSystemProxy = ProxyEndPoints.OfType<ExplicitProxyEndPoint>().Any(x => x.IsSystemHttpProxy || x.IsSystemHttpsProxy);
+			var setAsSystemProxy = ProxyEndPoints.OfType<ExplicitProxyEndpoint>().Any(x => x.IsSystemHttpProxy || x.IsSystemHttpsProxy);
 
 			if (setAsSystemProxy)
 			{
@@ -509,10 +502,7 @@ namespace Titanium.Web.Proxy
 
 			_certificateCacheManager?.StopClearIdleCertificates();
 
-			if (RequestBodyCache.IsValueCreated)
-			{
-				RequestBodyCache.Value.Clear();
-			}
+			RequestBodyCache.Clear();
 
 			_proxyRunning = false;
 		}
@@ -547,43 +537,51 @@ namespace Titanium.Web.Proxy
 		/// <summary>
 		/// Listen on the given end point on local machine
 		/// </summary>
-		/// <param name="endPoint">The end point.</param>
+		/// <param name="endpoint">The end point.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
-		private void Listen(ProxyEndPoint endPoint, CancellationToken cancellationToken = default(CancellationToken))
+		private void Listen(ProxyEndpoint endpoint, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			endPoint.Listener = new TcpListener(endPoint.IpAddress, endPoint.Port);
-			endPoint.Listener.Start();
-
-			endPoint.Port = ((IPEndPoint)endPoint.Listener.LocalEndpoint).Port;
-			endPoint.CancellationToken = cancellationToken;
-
-			if (cancellationToken.IsCancellationRequested)
+			try
 			{
-				return;
-			}
+				endpoint.Listener = new TcpListener(endpoint.IpAddress, endpoint.Port);
+				endpoint.Listener.Start();
 
-			// accept clients asynchronously
-			endPoint.Listener.BeginAcceptTcpClient(OnAcceptConnection, endPoint);
+				endpoint.Port = ((IPEndPoint) endpoint.Listener.LocalEndpoint).Port;
+				endpoint.CancellationToken = cancellationToken;
+
+				if (cancellationToken.IsCancellationRequested)
+				{
+					return;
+				}
+
+				// Accept clients asynchronously
+				endpoint.Listener.BeginAcceptTcpClient(OnAcceptConnection, endpoint);
+			}
+			catch (SocketException e)
+			{
+				ExceptionFunc(e);
+				QuitListen(endpoint);
+			}
 		}
 
 		/// <summary>
 		/// Quit listening on the given end point
 		/// </summary>
-		/// <param name="endPoint"></param>
-		private void QuitListen(ProxyEndPoint endPoint)
+		/// <param name="endpoint"></param>
+		private void QuitListen(ProxyEndpoint endpoint)
 		{
-			endPoint.Listener.Stop();
-			endPoint.Listener.Server.Close();
-			endPoint.Listener.Server.Dispose();
+			endpoint.Listener.Stop();
+			endpoint.Listener.Server.Close();
+			endpoint.Listener.Server.Dispose();
 		}
 
 		/// <summary>
 		/// Verifiy if its safe to set this end point as System proxy
 		/// </summary>
-		/// <param name="endPoint"></param>
-		private void ValidateEndPointAsSystemProxy(ExplicitProxyEndPoint endPoint)
+		/// <param name="endpoint"></param>
+		private void ValidateEndPointAsSystemProxy(ExplicitProxyEndpoint endpoint)
 		{
-			if (ProxyEndPoints.Contains(endPoint) == false)
+			if (ProxyEndPoints.Contains(endpoint) == false)
 			{
 				throw new Exception("Cannot set endPoints not added to proxy as system proxy");
 			}
@@ -597,17 +595,17 @@ namespace Titanium.Web.Proxy
 		/// <summary>
 		/// When a connection is received from client act
 		/// </summary>
-		/// <param name="asyn"></param>
-		private void OnAcceptConnection(IAsyncResult asyn)
+		/// <param name="asyncResult"></param>
+		private void OnAcceptConnection(IAsyncResult asyncResult)
 		{
-			var endPoint = (ProxyEndPoint)asyn.AsyncState;
+			var endPoint = (ProxyEndpoint)asyncResult.AsyncState;
 
 			TcpClient tcpClient = null;
 
 			try
 			{
-				//based on end point type call appropriate request handlers
-				tcpClient = endPoint.Listener.EndAcceptTcpClient(asyn);
+				// Based on end point type call appropriate request handlers
+				tcpClient = endPoint.Listener.EndAcceptTcpClient(asyncResult);
 			}
 			catch (ObjectDisposedException)
 			{
@@ -628,15 +626,17 @@ namespace Titanium.Web.Proxy
 				{
 					try
 					{
-						if (endPoint.GetType() == typeof(TransparentProxyEndPoint))
+						switch (endPoint.EndpointType)
 						{
-							await HandleClient(endPoint as TransparentProxyEndPoint, tcpClient, cancellationToken: endPoint.CancellationToken);
+							case EndpointType.Explicit:
+								await HandleClient(endPoint as ExplicitProxyEndpoint, tcpClient, cancellationToken: endPoint.CancellationToken);
+								break;
+							case EndpointType.Transparent:
+								await HandleClient(endPoint as TransparentProxyEndpoint, tcpClient, cancellationToken: endPoint.CancellationToken);
+								break;
+							default:
+								throw new ArgumentOutOfRangeException(nameof(endPoint.EndpointType), "Unknown endpoint type");
 						}
-						else
-						{
-							await HandleClient(endPoint as ExplicitProxyEndPoint, tcpClient, cancellationToken: endPoint.CancellationToken);
-						}
-
 					}
 					finally
 					{
@@ -652,7 +652,6 @@ namespace Titanium.Web.Proxy
 							tcpClient.Client.Close();
 							tcpClient.Client.Dispose();
 							tcpClient.Close();
-
 						}
 					}
 				});
