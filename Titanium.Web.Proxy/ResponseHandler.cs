@@ -14,7 +14,6 @@ using Titanium.Web.Proxy.Exceptions;
 using Titanium.Web.Proxy.Extensions;
 using Titanium.Web.Proxy.Http;
 using Titanium.Web.Proxy.Helpers;
-using Titanium.Web.Proxy.Shared;
 
 namespace Titanium.Web.Proxy
 {
@@ -238,15 +237,7 @@ namespace Titanium.Web.Proxy
 		/// <returns></returns>
 		private async Task WriteResponseStatus(Version version, int statusCode, string description, StreamWriter responseWriter)
 		{
-			await responseWriter.WriteLineAsync("HTTP/");
-			await responseWriter.WriteLineAsync(version.Major.ToString());
-			await responseWriter.WriteLineAsync(".");
-			await responseWriter.WriteLineAsync(version.Minor.ToString());
-			await responseWriter.WriteLineAsync(ProxyConstants.Space);
-			await responseWriter.WriteLineAsync(statusCode.ToString());
-			await responseWriter.WriteLineAsync(ProxyConstants.Space);
-			await responseWriter.WriteLineAsync(description);
-			await responseWriter.WriteLineAsync(ProxyConstants.CoreNewLine);
+			await responseWriter.WriteLineAsync($"HTTP/{version.Major}.{version.Minor} {statusCode} {description}");
 		}
 
 		/// <summary>

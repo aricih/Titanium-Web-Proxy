@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -42,7 +41,6 @@ namespace Titanium.Web.Proxy
 			var clientStreamReader = new CustomBinaryReader(clientStream);
 			var clientStreamWriter = new StreamWriter(clientStream, ProxyConstants.DefaultEncoding, BufferSize, true);
 
-			Uri httpRemoteUri;
 			try
 			{
 				//read the first line HTTP command
@@ -57,7 +55,7 @@ namespace Titanium.Web.Proxy
 				// Break up the line into three components (method, remote URL & Http Version)
 				var httpRequestHead = HttpRequestHeadParser.Parse(httpCmd);
 
-				httpRemoteUri = httpRequestHead.Method.Equals("CONNECT", StringComparison.InvariantCultureIgnoreCase)
+				var httpRemoteUri = httpRequestHead.Method.Equals("CONNECT", StringComparison.InvariantCultureIgnoreCase)
 					? new Uri($"http://{httpRequestHead.Url}")
 					: new Uri(httpRequestHead.Url);
 
@@ -540,20 +538,11 @@ namespace Titanium.Web.Proxy
 		private async Task WriteConnectResponse(StreamWriter clientStreamWriter, Version httpVersion)
 		{
 			// Write HTTP response
-			await clientStreamWriter.WriteAsync("HTTP/");
-			await clientStreamWriter.WriteAsync(httpVersion.Major.ToString());
-			await clientStreamWriter.WriteAsync(".");
-			await clientStreamWriter.WriteAsync(httpVersion.Minor.ToString());
-			await clientStreamWriter.WriteAsync(ProxyConstants.Space);
-			await clientStreamWriter.WriteAsync("200 Connection established");
-			await clientStreamWriter.WriteAsync(ProxyConstants.CoreNewLine);
-
+			await clientStreamWriter.WriteLineAsync($"HTTP/{httpVersion.Major}.{httpVersion.Minor} 200 Connection established");
+			
 			// Write timestamp header
-			await clientStreamWriter.WriteAsync("Timestamp:");
-			await clientStreamWriter.WriteAsync(ProxyConstants.Space);
-			await clientStreamWriter.WriteAsync(DateTime.Now.ToString(CultureInfo.InvariantCulture));
-			await clientStreamWriter.WriteAsync(ProxyConstants.CoreNewLine);
-
+			await clientStreamWriter.WriteLineAsync($"Timestamp: {DateTime.Now}");
+			
 			await clientStreamWriter.WriteLineAsync();
 			await clientStreamWriter.FlushAsync();
 		}
