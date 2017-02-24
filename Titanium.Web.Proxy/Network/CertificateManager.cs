@@ -96,7 +96,7 @@ namespace Titanium.Web.Proxy.Network
 
 			try
 			{
-				RootCertificate = CreateCertificate(RootCertificateName, true);
+				RootCertificate = GetOrCreateCertificate(RootCertificateName, true);
 			}
 			catch (Exception e)
 			{
@@ -127,7 +127,7 @@ namespace Titanium.Web.Proxy.Network
 		/// <param name="certificateName">Name of the certificate.</param>
 		/// <param name="isRootCertificate">if set to <c>true</c> [is root certificate].</param>
 		/// <returns>X509Certificate2.</returns>
-		internal virtual X509Certificate2 CreateCertificate(string certificateName, bool isRootCertificate)
+		internal virtual X509Certificate2 GetOrCreateCertificate(string certificateName, bool isRootCertificate)
 		{
 			if (_certificateCache.ContainsKey(certificateName))
 			{

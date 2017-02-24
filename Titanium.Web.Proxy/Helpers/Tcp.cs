@@ -185,7 +185,9 @@ namespace Titanium.Web.Proxy.Helpers
 
 				var receiveRelay = tunnelStream.CopyToAsync(string.Empty, clientStream, cancellationToken: cancellationToken);
 
-				await Task.WhenAll(sendRelay, receiveRelay);
+				await Task.WhenAny(
+					Task.WhenAll(sendRelay, receiveRelay),
+					Task.Delay(ProxyServer.TaskTimeout, cancellationToken: cancellationToken));
 			}
 			finally
 			{

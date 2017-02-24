@@ -8,7 +8,8 @@ namespace Titanium.Web.Proxy.Shared
 	internal class ProxyConstants
 	{
 		internal static readonly string CoreNewLine = "\r\n";
-		internal static readonly char[] SpaceSplit = { ' ' };
+		internal static readonly char Space = ' ';
+		internal static readonly char[] SpaceSplit = { Space };
 		internal static readonly char[] ColonSplit = { ':' };
 		internal static readonly char[] SemiColonSplit = { ';' };
 

@@ -13,8 +13,11 @@ namespace Titanium.Web.Proxy.Http
 	/// <summary>
 	/// Used to communicate with the server over HTTP(S)
 	/// </summary>
-	public class HttpWebClient
+	public class HttpWebClient : IDisposable
 	{
+		private bool _disposed;
+		private readonly object _disposeLock = new object();
+
 		/// <summary>
 		/// Connection to server
 		/// </summary>
@@ -49,7 +52,7 @@ namespace Titanium.Web.Proxy.Http
 		/// <summary>
 		/// Is Https?
 		/// </summary>
-		public bool IsHttps => Request.RequestUri.Scheme == Uri.UriSchemeHttps;
+		public bool IsHttps => Request.TargetUri.Scheme == Uri.UriSchemeHttps;
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="HttpWebClient"/> class.
@@ -88,22 +91,22 @@ namespace Titanium.Web.Proxy.Http
 			if ((ServerConnection.UpstreamHttpProxy != null && ServerConnection.IsHttps == false) ||
 				(ServerConnection.UpstreamHttpsProxy != null && ServerConnection.IsHttps))
 			{
-				requestLines.Append($"{Request.Method} {Request.RequestUri.AbsoluteUri} HTTP/{Request.HttpVersion.Major}.{Request.HttpVersion.Minor}{ProxyConstants.CoreNewLine}");
+				requestLines.Append($"{Request.Method} {Request.TargetUri.AbsoluteUri} HTTP/{Request.HttpVersion.Major}.{Request.HttpVersion.Minor}{ProxyConstants.CoreNewLine}");
 			}
 			else
 			{
-				requestLines.Append($"{Request.Method} {Request.RequestUri.PathAndQuery} HTTP/{Request.HttpVersion.Major}.{Request.HttpVersion.Minor}{ProxyConstants.CoreNewLine}");
+				requestLines.Append($"{Request.Method} {Request.TargetUri.PathAndQuery} HTTP/{Request.HttpVersion.Major}.{Request.HttpVersion.Minor}{ProxyConstants.CoreNewLine}");
 			}
 
 			//write request headers
-			foreach (var headerItem in Request.RequestHeaders)
+			foreach (var headerItem in Request.Headers)
 			{
 				var header = headerItem.Value;
 				requestLines.Append($"{header.Name}: {header.Value}{ProxyConstants.CoreNewLine}");
 			}
 
 			//write non unique request headers
-			foreach (var headerItem in Request.NonUniqueRequestHeaders)
+			foreach (var headerItem in Request.NonUniqueHeaders)
 			{
 				var headers = headerItem.Value;
 				foreach (var header in headers)
@@ -128,16 +131,12 @@ namespace Titanium.Web.Proxy.Http
 					var httpResponseHead = HttpResponseHeadParser.Parse(httpResult);
 
 					//find if server is willing for expect continue
-					if (httpResponseHead.StatusCode == 100
-						&& httpResponseHead.StatusDescription.Equals("continue", StringComparison.InvariantCultureIgnoreCase))
+					if (httpResponseHead.StatusCode == 100)
 					{
 						Request.Is100Continue = true;
 						await ServerConnection.StreamReader.ReadLineAsync(cancellationToken: cancellationToken);
 					}
-					else if (httpResponseHead.StatusCode == 417
-							 &&
-							 httpResponseHead.StatusDescription.Equals("expectation failed",
-								 StringComparison.InvariantCultureIgnoreCase))
+					else if (httpResponseHead.StatusCode == 417)
 					{
 						Request.ExpectationFailed = true;
 						await ServerConnection.StreamReader.ReadLineAsync(cancellationToken: cancellationToken);
@@ -154,92 +153,103 @@ namespace Titanium.Web.Proxy.Http
 		internal async Task ReceiveResponse(bool isReplayedRequest = false,
 			CancellationToken cancellationToken = default(CancellationToken))
 		{
-			try
+			//return if this is already read
+			if (Response.StatusCode != 0 && !isReplayedRequest)
 			{
-				//return if this is already read
-				if (Response.ResponseStatusCode != 0 && !isReplayedRequest)
+				return;
+			}
+
+			//var a = ServerConnection.StreamReader.BaseStream.ReadByte();
+			var httpCommand = await ServerConnection.StreamReader.ReadLineAsync(cancellationToken: cancellationToken);
+			var httpResponseHead = HttpResponseHeadParser.Parse(httpCommand);
+
+			if (httpResponseHead.StatusCode == 0)
+			{
+				//Empty content in first-line, try again
+				httpCommand = await ServerConnection.StreamReader.ReadLineAsync(cancellationToken: cancellationToken);
+				httpResponseHead = HttpResponseHeadParser.Parse(httpCommand);
+			}
+
+			Response.HttpVersion = httpResponseHead.Version;
+			Response.StatusCode = httpResponseHead.StatusCode;
+			Response.StatusDescription = httpResponseHead.StatusDescription;
+
+			Response.Is100Continue = Response.StatusCode == 100;
+			Response.ExpectationFailed = Response.StatusCode == 417;
+
+			// For HTTP 1.1 comptibility server may send expect-continue even if not asked for it in request
+			if (Response.Is100Continue || Response.ExpectationFailed)
+			{
+				// Read the next line after 100-continue 
+				Response.StatusCode = 0;
+				await ServerConnection.StreamReader.ReadLineAsync(cancellationToken: cancellationToken);
+
+				// Now receive response
+				await ReceiveResponse(cancellationToken: cancellationToken);
+				return;
+			}
+
+			//Read the Response headers
+			//Read the response headers in to unique and non-unique header collections
+			string line;
+
+			while (
+				!string.IsNullOrEmpty(
+					line = await ServerConnection.StreamReader.ReadLineAsync(cancellationToken: cancellationToken)))
+			{
+				var header = line.Split(ProxyConstants.ColonSplit, 2);
+
+				var newHeader = new HttpHeader(header[0], header[1]);
+
+				//if header exist in non-unique header collection add it there
+				if (Response.NonUniqueHeaders.ContainsKey(newHeader.Name))
 				{
-					return;
+					Response.NonUniqueHeaders[newHeader.Name].Add(newHeader);
 				}
-
-				//var a = ServerConnection.StreamReader.BaseStream.ReadByte();
-				var httpCommand = await ServerConnection.StreamReader.ReadLineAsync(cancellationToken: cancellationToken);
-				var httpResponseHead = HttpResponseHeadParser.Parse(httpCommand);
-
-				if (httpResponseHead.StatusCode == 0)
+				//if header is alread in unique header collection then move both to non-unique collection
+				else if (Response.Headers.ContainsKey(newHeader.Name))
 				{
-					//Empty content in first-line, try again
-					httpCommand = await ServerConnection.StreamReader.ReadLineAsync(cancellationToken: cancellationToken);
-					httpResponseHead = HttpResponseHeadParser.Parse(httpCommand);
+					var existing = Response.Headers[newHeader.Name];
+
+					var nonUniqueHeaders = new List<HttpHeader> { existing, newHeader };
+
+					Response.NonUniqueHeaders.Add(newHeader.Name, nonUniqueHeaders);
+					Response.Headers.Remove(newHeader.Name);
 				}
-
-				Response.HttpVersion = httpResponseHead.Version;
-				Response.ResponseStatusCode = httpResponseHead.StatusCode;
-				Response.ResponseStatusDescription = httpResponseHead.StatusDescription;
-
-				// For HTTP 1.1 comptibility server may send expect-continue even if not asked for it in request
-				if (Response.ResponseStatusCode == 100
-					&& Response.ResponseStatusDescription.ToLower().Equals("continue"))
+				//add to unique header collection
+				else
 				{
-					// Read the next line after 100-continue 
-					Response.Is100Continue = true;
-					Response.ResponseStatusCode = 0;
-					await ServerConnection.StreamReader.ReadLineAsync(cancellationToken: cancellationToken);
-
-					// Now receive response
-					await ReceiveResponse(cancellationToken: cancellationToken);
-					return;
-				}
-
-				if (Response.ResponseStatusCode == 417
-					&& Response.ResponseStatusDescription.ToLower().Equals("expectation failed"))
-				{
-					//read next line after expectation failed response
-					Response.ExpectationFailed = true;
-					Response.ResponseStatusCode = 0;
-					await ServerConnection.StreamReader.ReadLineAsync(cancellationToken: cancellationToken);
-					//now receive response 
-					await ReceiveResponse(cancellationToken: cancellationToken);
-					return;
-				}
-
-				//Read the Response headers
-				//Read the response headers in to unique and non-unique header collections
-				string tmpLine;
-				while (
-					!string.IsNullOrEmpty(
-						tmpLine = await ServerConnection.StreamReader.ReadLineAsync(cancellationToken: cancellationToken)))
-				{
-					var header = tmpLine.Split(ProxyConstants.ColonSplit, 2);
-
-					var newHeader = new HttpHeader(header[0], header[1]);
-
-					//if header exist in non-unique header collection add it there
-					if (Response.NonUniqueResponseHeaders.ContainsKey(newHeader.Name))
-					{
-						Response.NonUniqueResponseHeaders[newHeader.Name].Add(newHeader);
-					}
-					//if header is alread in unique header collection then move both to non-unique collection
-					else if (Response.ResponseHeaders.ContainsKey(newHeader.Name))
-					{
-						var existing = Response.ResponseHeaders[newHeader.Name];
-
-						var nonUniqueHeaders = new List<HttpHeader> { existing, newHeader };
-
-						Response.NonUniqueResponseHeaders.Add(newHeader.Name, nonUniqueHeaders);
-						Response.ResponseHeaders.Remove(newHeader.Name);
-					}
-					//add to unique header collection
-					else
-					{
-						Response.ResponseHeaders.Add(newHeader.Name, newHeader);
-					}
+					Response.Headers.Add(newHeader.Name, newHeader);
 				}
 			}
-			catch (Exception ex)
-			{
+		}
 
+		/// <summary>
+		/// Releases unmanaged and - optionally - managed resources.
+		/// </summary>
+		/// <param name="disposing"><c>true</c> to release both managed and unmanaged resources; <c>false</c> to release only unmanaged resources.</param>
+		protected virtual void Dispose(bool disposing)
+		{
+			if (_disposed || disposing)
+			{
+				return;
 			}
+
+			lock (_disposeLock)
+			{
+				ServerConnection?.Dispose();
+			}
+
+			_disposed = true;
+		}
+
+		/// <summary>
+		/// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+		/// </summary>
+		/// <exception cref="NotImplementedException"></exception>
+		public void Dispose()
+		{
+			Dispose(true);
 		}
 	}
 }

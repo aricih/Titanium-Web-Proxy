@@ -50,7 +50,7 @@ namespace Titanium.Web.Proxy.EventArguments
 		/// <summary>
 		/// Does this session uses SSL
 		/// </summary>
-		public bool IsHttps => WebSession.Request.RequestUri.Scheme == Uri.UriSchemeHttps;
+		public bool IsHttps => WebSession.Request.TargetUri.Scheme == Uri.UriSchemeHttps;
 
 		/// <summary>
 		/// Gets the client end point.
@@ -105,7 +105,7 @@ namespace Titanium.Web.Proxy.EventArguments
 			}
 
 			//Caching check
-			if (WebSession.Request.RequestBody == null)
+			if (WebSession.Request.Body == null)
 			{
 
 				//If chunked then its easy just read the whole body with the content length mentioned in the request header
@@ -138,7 +138,7 @@ namespace Titanium.Web.Proxy.EventArguments
 								cancellationToken: cancellationToken);
 						}
 					}
-					WebSession.Request.RequestBody = await GetDecompressedResponseBody(
+					WebSession.Request.Body = await GetDecompressedResponseBody(
 						WebSession.Request.ContentEncoding,
 						requestBodyStream.ToArray(),
 						cancellationToken: cancellationToken);
@@ -146,7 +146,7 @@ namespace Titanium.Web.Proxy.EventArguments
 
 				//Now set the flag to true
 				//So that next time we can deliver body from cache
-				WebSession.Request.RequestBodyRead = true;
+				WebSession.Request.HasBodyRead = true;
 			}
 
 		}
@@ -158,7 +158,7 @@ namespace Titanium.Web.Proxy.EventArguments
 		private async Task ReadResponseBody(CancellationToken cancellationToken = default(CancellationToken))
 		{
 			//If not already read (not cached yet)
-			if (WebSession.Response.ResponseBody == null)
+			if (WebSession.Response.Body == null)
 			{
 				using (var responseBodyStream = new MemoryStream())
 				{
@@ -189,14 +189,14 @@ namespace Titanium.Web.Proxy.EventArguments
 						}
 					}
 
-					WebSession.Response.ResponseBody = await GetDecompressedResponseBody(
+					WebSession.Response.Body = await GetDecompressedResponseBody(
 						WebSession.Response.ContentEncoding,
 						responseBodyStream.ToArray(),
 						cancellationToken: cancellationToken);
 
 				}
 				//set this to true for caching
-				WebSession.Response.ResponseBodyRead = true;
+				WebSession.Response.HasBodyRead = true;
 			}
 		}
 
@@ -208,16 +208,16 @@ namespace Titanium.Web.Proxy.EventArguments
 		/// <exception cref="Exception">You cannot call this function after request is made to server.</exception>
 		public async Task<byte[]> GetRequestBody(CancellationToken cancellationToken = default(CancellationToken))
 		{
-			if (!WebSession.Request.RequestBodyRead)
+			if (!WebSession.Request.HasBodyRead)
 			{
-				if (WebSession.Request.RequestLocked)
+				if (WebSession.Request.Locked)
 				{
 					throw new Exception("You cannot call this function after request is made to server.");
 				}
 
 				await ReadRequestBody(cancellationToken: cancellationToken);
 			}
-			return WebSession.Request.RequestBody;
+			return WebSession.Request.Body;
 		}
 
 		/// <summary>
@@ -227,13 +227,13 @@ namespace Titanium.Web.Proxy.EventArguments
 		/// <returns>Request body as string.</returns>
 		public async Task<string> GetRequestBodyAsString(CancellationToken cancellationToken = default(CancellationToken))
 		{
-			if (!WebSession.Request.RequestBodyRead)
+			if (!WebSession.Request.HasBodyRead)
 			{
-				if (WebSession.Request.RequestLocked)
+				if (WebSession.Request.Locked)
 				{
 					string requestBody;
 
-					return ProxyServer.Instance.RequestBodyCache.Value.TryRemove(WebSession.RequestId, out requestBody)
+					return ProxyServer.Instance.RequestBodyCache.TryRemove(WebSession.RequestId, out requestBody)
 						? requestBody
 						: null;
 				}
@@ -241,7 +241,7 @@ namespace Titanium.Web.Proxy.EventArguments
 				await ReadRequestBody(cancellationToken: cancellationToken);
 			}
 			// Use the encoding specified in request to decode the byte[] data to string
-			return WebSession.Request.RequestBodyString ?? (WebSession.Request.RequestBodyString = WebSession.Request.Encoding.GetString(WebSession.Request.RequestBody));
+			return WebSession.Request.BodyString ?? (WebSession.Request.BodyString = WebSession.Request.Encoding.GetString(WebSession.Request.Body));
 		}
 
 		/// <summary>
@@ -252,18 +252,18 @@ namespace Titanium.Web.Proxy.EventArguments
 		/// <exception cref="Exception">You cannot call this function after request is made to server.</exception>
 		public async Task SetRequestBody(byte[] body, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			if (WebSession.Request.RequestLocked)
+			if (WebSession.Request.Locked)
 			{
 				throw new Exception("You cannot call this function after request is made to server.");
 			}
 
 			//syphon out the request body from client before setting the new body
-			if (!WebSession.Request.RequestBodyRead)
+			if (!WebSession.Request.HasBodyRead)
 			{
 				await ReadRequestBody(cancellationToken: cancellationToken);
 			}
 
-			WebSession.Request.RequestBody = body;
+			WebSession.Request.Body = body;
 
 			if (WebSession.Request.IsChunked == false)
 			{
@@ -283,13 +283,13 @@ namespace Titanium.Web.Proxy.EventArguments
 		/// <exception cref="Exception">You cannot call this function after request is made to server.</exception>
 		public async Task SetRequestBodyString(string body, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			if (WebSession.Request.RequestLocked)
+			if (WebSession.Request.Locked)
 			{
 				throw new Exception("You cannot call this function after request is made to server.");
 			}
 
 			//syphon out the request body from client before setting the new body
-			if (!WebSession.Request.RequestBodyRead)
+			if (!WebSession.Request.HasBodyRead)
 			{
 				await ReadRequestBody(cancellationToken: cancellationToken);
 			}
@@ -306,13 +306,13 @@ namespace Titanium.Web.Proxy.EventArguments
 		/// <exception cref="Exception">You cannot call this function before request is made to server.</exception>
 		public async Task<byte[]> GetResponseBody(CancellationToken cancellationToken = default(CancellationToken))
 		{
-			if (!WebSession.Request.RequestLocked)
+			if (!WebSession.Request.Locked)
 			{
 				throw new Exception("You cannot call this function before request is made to server.");
 			}
 
 			await ReadResponseBody(cancellationToken: cancellationToken);
-			return WebSession.Response.ResponseBody;
+			return WebSession.Response.Body;
 		}
 
 		/// <summary>
@@ -323,15 +323,15 @@ namespace Titanium.Web.Proxy.EventArguments
 		/// <exception cref="Exception">You cannot call this function before request is made to server.</exception>
 		public async Task<string> GetResponseBodyAsString(CancellationToken cancellationToken = default(CancellationToken))
 		{
-			if (!WebSession.Request.RequestLocked)
+			if (!WebSession.Request.Locked)
 			{
 				throw new Exception("You cannot call this function before request is made to server.");
 			}
 
 			await GetResponseBody(cancellationToken: cancellationToken);
 
-			return WebSession.Response.ResponseBodyString ??
-				(WebSession.Response.ResponseBodyString = WebSession.Response.Encoding.GetString(WebSession.Response.ResponseBody));
+			return WebSession.Response.BodyString ??
+				(WebSession.Response.BodyString = WebSession.Response.Encoding.GetString(WebSession.Response.Body));
 		}
 
 		/// <summary>
@@ -342,18 +342,18 @@ namespace Titanium.Web.Proxy.EventArguments
 		/// <exception cref="Exception">You cannot call this function before request is made to server.</exception>
 		public async Task SetResponseBody(byte[] body, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			if (!WebSession.Request.RequestLocked)
+			if (!WebSession.Request.Locked)
 			{
 				throw new Exception("You cannot call this function before request is made to server.");
 			}
 
 			//syphon out the response body from server before setting the new body
-			if (WebSession.Response.ResponseBody == null)
+			if (WebSession.Response.Body == null)
 			{
 				await GetResponseBody(cancellationToken: cancellationToken);
 			}
 
-			WebSession.Response.ResponseBody = body;
+			WebSession.Response.Body = body;
 
 			//If there is a content length header update it
 			if (WebSession.Response.IsChunked == false)
@@ -374,13 +374,13 @@ namespace Titanium.Web.Proxy.EventArguments
 		/// <exception cref="Exception">You cannot call this function before request is made to server.</exception>
 		public async Task SetResponseBodyString(string body, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			if (!WebSession.Request.RequestLocked)
+			if (!WebSession.Request.Locked)
 			{
 				throw new Exception("You cannot call this function before request is made to server.");
 			}
 
 			//syphon out the response body from server before setting the new body
-			if (WebSession.Response.ResponseBody == null)
+			if (WebSession.Response.Body == null)
 			{
 				await GetResponseBody(cancellationToken: cancellationToken);
 			}
@@ -428,7 +428,7 @@ namespace Titanium.Web.Proxy.EventArguments
 		/// <exception cref="Exception">You cannot call this function after request is made to server.</exception>
 		public async Task Ok(string html, Dictionary<string, HttpHeader> headers, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			if (WebSession.Request.RequestLocked)
+			if (WebSession.Request.Locked)
 			{
 				throw new Exception("You cannot call this function after request is made to server.");
 			}
@@ -468,10 +468,10 @@ namespace Titanium.Web.Proxy.EventArguments
 			var response = new OkResponse();
 			if (headers != null && headers.Count > 0)
 			{
-				response.ResponseHeaders = headers;
+				response.Headers = headers;
 			}
 			response.HttpVersion = WebSession.Request.HttpVersion;
-			response.ResponseBody = result;
+			response.Body = result;
 
 			await Respond(response, cancellationToken: cancellationToken);
 
@@ -487,8 +487,8 @@ namespace Titanium.Web.Proxy.EventArguments
 		{
 			var response = new RedirectResponse { HttpVersion = WebSession.Request.HttpVersion };
 
-			response.ResponseHeaders.Add("Location", new HttpHeader("Location", url));
-			response.ResponseBody = ProxyConstants.DefaultEncoding.GetBytes(string.Empty);
+			response.Headers.Add("Location", new HttpHeader("Location", url));
+			response.Body = ProxyConstants.DefaultEncoding.GetBytes(string.Empty);
 
 			await Respond(response, cancellationToken: cancellationToken);
 
@@ -502,10 +502,10 @@ namespace Titanium.Web.Proxy.EventArguments
 		/// <param name="cancellationToken">The cancellation token.</param>
 		public async Task Respond(Response response, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			WebSession.Request.RequestLocked = true;
+			WebSession.Request.Locked = true;
 
-			response.ResponseLocked = true;
-			response.ResponseBodyRead = true;
+			response.Locked = true;
+			response.HasBodyRead = true;
 
 			WebSession.Response = response;
 

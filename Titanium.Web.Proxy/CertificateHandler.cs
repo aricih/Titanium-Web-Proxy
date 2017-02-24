@@ -18,7 +18,6 @@ namespace Titanium.Web.Proxy
 		/// <returns></returns>
 		internal bool ValidateServerCertificate(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
 		{
-
 			//By default do not allow this client to communicate with unauthenticated servers.
 			if (ServerCertificateValidationCallback == null)
 			{
@@ -40,7 +39,10 @@ namespace Titanium.Web.Proxy
 				handlerTasks[i] = ((Func<object, CertificateValidationEventArgs, Task>)invocationList[i])(null, args);
 			}
 
-			Task.WhenAll(handlerTasks).Wait();
+			Task.WhenAny(
+				Task.WhenAll(handlerTasks),
+				Task.Delay(TaskTimeout))
+				.Wait();
 
 			return args.IsValid;
 		}
@@ -103,7 +105,10 @@ namespace Titanium.Web.Proxy
 				handlerTasks[i] = ((Func<object, CertificateSelectionEventArgs, Task>)invocationList[i])(null, args);
 			}
 
-			Task.WhenAll(handlerTasks).Wait();
+			Task.WhenAny(
+				Task.WhenAll(handlerTasks),
+				Task.Delay(TaskTimeout))
+				.Wait();
 
 			return args.ClientCertificate;
 		}

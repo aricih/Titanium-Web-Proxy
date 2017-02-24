@@ -35,7 +35,7 @@ namespace Titanium.Web.Proxy
 								"Proxy Authentication Required", clientStreamWriter);
 					var response = new Response
 					{
-						ResponseHeaders = new Dictionary<string, HttpHeader>
+						Headers = new Dictionary<string, HttpHeader>
 						{
 							{"Proxy-Authenticate", new HttpHeader("Proxy-Authenticate", "Basic realm=\"TitaniumProxy\"")},
 							{"Proxy-Connection", new HttpHeader("Proxy-Connection", "close")}
@@ -63,7 +63,7 @@ namespace Titanium.Web.Proxy
 
 					var response = new Response
 					{
-						ResponseHeaders = new Dictionary<string, HttpHeader>
+						Headers = new Dictionary<string, HttpHeader>
 						{
 							{"Proxy-Authenticate", new HttpHeader("Proxy-Authenticate", "Basic realm=\"TitaniumProxy\"")},
 							{"Proxy-Connection", new HttpHeader("Proxy-Connection", "close")}
@@ -86,7 +86,7 @@ namespace Titanium.Web.Proxy
 
 					var response = new Response
 					{
-						ResponseHeaders = new Dictionary<string, HttpHeader>
+						Headers = new Dictionary<string, HttpHeader>
 						{
 							{"Proxy-Authenticate", new HttpHeader("Proxy-Authenticate", "Basic realm=\"TitaniumProxy\"")},
 							{"Proxy-Connection", new HttpHeader("Proxy-Connection", "close")}
@@ -111,7 +111,7 @@ namespace Titanium.Web.Proxy
 
 				var response = new Response
 				{
-					ResponseHeaders = new Dictionary<string, HttpHeader>
+					Headers = new Dictionary<string, HttpHeader>
 					{
 						{"Proxy-Authenticate", new HttpHeader("Proxy-Authenticate", "Basic realm=\"TitaniumProxy\"")},
 						{"Proxy-Connection", new HttpHeader("Proxy-Connection", "close")}

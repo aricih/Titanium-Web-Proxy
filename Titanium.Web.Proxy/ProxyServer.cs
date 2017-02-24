@@ -98,12 +98,12 @@ namespace Titanium.Web.Proxy
 		/// <summary>
 		/// Minutes certificates should be kept in cache when not used
 		/// </summary>
-		public int CertificateCacheTimeOutMinutes { get; set; }
+		public static int CertificateCacheTimeOutMinutes { get; set; } = 60;
 
 		/// <summary>
 		/// Seconds client/server connection are to be kept alive when waiting for read/write to complete
 		/// </summary>
-		public int ConnectionTimeOutSeconds { get; set; }
+		public static int ConnectionTimeOutSeconds { get; set; } = 120;
 
 		/// <summary>
 		/// Intercept request to server
@@ -134,6 +134,11 @@ namespace Titanium.Web.Proxy
 		/// Callback tooverride client certificate during SSL mutual authentication
 		/// </summary>
 		public event Func<object, CertificateSelectionEventArgs, Task> ClientCertificateSelectionCallback;
+
+		/// <summary>
+		/// The task timeout
+		/// </summary>
+		internal static readonly TimeSpan TaskTimeout = TimeSpan.FromSeconds(ConnectionTimeOutSeconds);
 
 		/// <summary>
 		/// Callback for error events in proxy
