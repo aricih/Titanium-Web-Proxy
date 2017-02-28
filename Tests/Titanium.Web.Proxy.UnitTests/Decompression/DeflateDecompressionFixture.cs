@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections;
+using System.IO;
 using NUnit.Framework;
 using Titanium.Web.Proxy.Decompression;
 
@@ -15,7 +16,11 @@ namespace Titanium.Web.Proxy.UnitTests.Decompression
 		{
 			var decompression = new DeflateDecompression();
 
-			return decompression.Decompress(compressedData, bufferSize).Result;
+			// Hack: If compressed data is null then don't use the constructed memory stream, pass null to Decompress instead
+			using (var inputStream = new MemoryStream(compressedData ?? new byte[0]))
+			{
+				return decompression.Decompress(compressedData != null ? inputStream : null, bufferSize).Result?.ToArray();
+			}
 		}
 
 		private class DeflateDecompressionTestCaseSource
