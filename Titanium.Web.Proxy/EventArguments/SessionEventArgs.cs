@@ -96,7 +96,7 @@ namespace Titanium.Web.Proxy.EventArguments
 		private async Task ReadRequestBody(CancellationToken cancellationToken = default(CancellationToken))
 		{
 			//GET request don't have a request body to read
-			if (!WebSession.Request.Method.Equals("POST", StringComparison.InvariantCultureIgnoreCase) 
+			if (!WebSession.Request.Method.Equals("POST", StringComparison.InvariantCultureIgnoreCase)
 				&& !WebSession.Request.Method.Equals("PUT", StringComparison.InvariantCultureIgnoreCase))
 			{
 				throw new BodyNotFoundException("Request don't have a body." +
@@ -138,10 +138,15 @@ namespace Titanium.Web.Proxy.EventArguments
 								cancellationToken: cancellationToken);
 						}
 					}
-					WebSession.Request.Body = await GetDecompressedResponseBody(
+
+					using (var bodyStream = await GetDecompressedResponseBody(
 						WebSession.Request.ContentEncoding,
-						requestBodyStream.ToArray(),
-						cancellationToken: cancellationToken);
+						requestBodyStream,
+						cancellationToken: cancellationToken))
+					{
+
+						WebSession.Request.Body = (bodyStream as MemoryStream)?.ToArray();
+					}
 				}
 
 				//Now set the flag to true
@@ -189,10 +194,14 @@ namespace Titanium.Web.Proxy.EventArguments
 						}
 					}
 
-					WebSession.Response.Body = await GetDecompressedResponseBody(
-						WebSession.Response.ContentEncoding,
-						responseBodyStream.ToArray(),
-						cancellationToken: cancellationToken);
+					using (var bodyStream = await GetDecompressedResponseBody(
+						WebSession.Request.ContentEncoding,
+						responseBodyStream,
+						cancellationToken: cancellationToken))
+					{
+
+						WebSession.Response.Body = (bodyStream as MemoryStream)?.ToArray();
+					}
 
 				}
 				//set this to true for caching
@@ -397,7 +406,7 @@ namespace Titanium.Web.Proxy.EventArguments
 		/// <param name="responseBodyStream">The response body stream.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <returns>Decompressed response body.</returns>
-		private async Task<byte[]> GetDecompressedResponseBody(string encodingType, byte[] responseBodyStream, CancellationToken cancellationToken = default(CancellationToken))
+		private async Task<Stream> GetDecompressedResponseBody(string encodingType, MemoryStream responseBodyStream, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			var decompressionFactory = new DecompressionFactory();
 			var decompressor = decompressionFactory.Create(encodingType);

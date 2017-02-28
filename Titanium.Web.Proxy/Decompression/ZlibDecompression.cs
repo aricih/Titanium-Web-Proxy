@@ -10,32 +10,38 @@ namespace Titanium.Web.Proxy.Decompression
 	/// </summary>
 	internal class ZlibDecompression : IDecompression
 	{
-		public async Task<byte[]> Decompress(byte[] compressedArray, int bufferSize, CancellationToken cancellationToken = default(CancellationToken))
+		/// <summary>
+		/// Decompresses the specified compressed stream.
+		/// </summary>
+		/// <param name="compressedStream">The compressed stream.</param>
+		/// <param name="bufferSize">Size of the buffer.</param>
+		/// <param name="cancellationToken">The cancellation token.</param>
+		/// <returns>Decompressed data as memory stream.</returns>
+		public async Task<MemoryStream> Decompress(MemoryStream compressedStream, int bufferSize, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			if (compressedArray == null || bufferSize < 1)
+			if (compressedStream == null || bufferSize < 1)
 			{
 				return null;
 			}
 
-			var memoryStream = new MemoryStream(compressedArray);
-
-			using (var decompressor = new ZlibStream(memoryStream, CompressionMode.Decompress))
+			using (var decompressor = new ZlibStream(compressedStream, CompressionMode.Decompress, true))
 			{
 				var buffer = new byte[bufferSize];
+				var output = new MemoryStream();
 
-				using (var output = new MemoryStream())
+				int read;
+				while ((read = await decompressor.ReadAsync(buffer, 0, buffer.Length, cancellationToken: cancellationToken)) > 0)
 				{
-					int read;
-
-					while ((read = await decompressor.ReadAsync(buffer, 0, buffer.Length, cancellationToken: cancellationToken)) > 0)
-					{
-						await output.WriteAsync(buffer, 0, read, cancellationToken: cancellationToken);
-					}
-
-					return cancellationToken.IsCancellationRequested ? null : output.ToArray();
+					await output.WriteAsync(buffer, 0, read, cancellationToken: cancellationToken);
 				}
+
+				if (cancellationToken.IsCancellationRequested)
+				{
+					output.Dispose();
+				}
+
+				return cancellationToken.IsCancellationRequested ? null : output;
 			}
 		}
 	}
 }
-

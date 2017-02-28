@@ -10,22 +10,34 @@ namespace Titanium.Web.Proxy.Compression
 	/// </summary>
 	internal class DeflateCompression : ICompression
 	{
-		public async Task<byte[]> Compress(byte[] responseBody, CancellationToken cancellationToken = default(CancellationToken))
+		/// <summary>
+		/// Compresses the specified response body.
+		/// </summary>
+		/// <param name="responseBody">The response body.</param>
+		/// <param name="cancellationToken">The cancellation token.</param>
+		/// <returns>Compressed data as memory stream.</returns>
+		public async Task<MemoryStream> Compress(byte[] responseBody, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			if (responseBody == null)
 			{
 				return null;
 			}
 
-			using (var ms = new MemoryStream())
-			{
-				using (var zip = new DeflateStream(ms, CompressionMode.Compress, true))
-				{
-					await zip.WriteAsync(responseBody, 0, responseBody.Length, cancellationToken: cancellationToken);
-				}
+			var compressedStream = new MemoryStream();
 
-				return cancellationToken.IsCancellationRequested ? null : ms.ToArray();
+			using (var zip = new DeflateStream(compressedStream, CompressionMode.Compress, true))
+			{
+				await zip.WriteAsync(responseBody, 0, responseBody.Length, cancellationToken: cancellationToken);
 			}
+
+			if (!cancellationToken.IsCancellationRequested)
+			{
+				return compressedStream;
+			}
+
+			compressedStream.Dispose();
+			return null;
+
 		}
 	}
 }

@@ -304,15 +304,20 @@ namespace Titanium.Web.Proxy
 				{
 					if (args.WebSession.Request.ContentEncoding != null)
 					{
-						args.WebSession.Request.Body =
-							await GetCompressedResponseBody(args.WebSession.Request.ContentEncoding, args.WebSession.Request.Body, cancellationToken: cancellationToken);
+						using (var compressedStream = await GetCompressedResponseBody(
+							args.WebSession.Request.ContentEncoding, 
+							args.WebSession.Request.Body,
+							cancellationToken: cancellationToken))
+						{
+							args.WebSession.Request.Body = compressedStream?.ToArray();
+						}
 					}
 
 					// Chunked send is not supported as of now
-					args.WebSession.Request.ContentLength = args.WebSession.Request.Body.Length;
+					args.WebSession.Request.ContentLength = args.WebSession.Request.Body?.Length ?? 0;
 
 					var newStream = args.WebSession.ServerConnection.Stream;
-					await newStream.WriteAsync(args.WebSession.Request.Body, 0, args.WebSession.Request.Body.Length, cancellationToken: cancellationToken);
+					await newStream.WriteAsync(args.WebSession.Request.Body, 0, args.WebSession.Request.Body?.Length ?? 0, cancellationToken: cancellationToken);
 				}
 				else
 				{

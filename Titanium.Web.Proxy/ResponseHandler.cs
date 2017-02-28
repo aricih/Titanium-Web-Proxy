@@ -154,11 +154,14 @@ namespace Titanium.Web.Proxy
 
 					if (contentEncoding != null)
 					{
-						args.WebSession.Response.Body = await GetCompressedResponseBody(contentEncoding, args.WebSession.Response.Body, cancellationToken: cancellationToken);
+						using (var compressedStream = await GetCompressedResponseBody(contentEncoding, args.WebSession.Response.Body, cancellationToken: cancellationToken))
+						{
+							args.WebSession.Response.Body = compressedStream?.ToArray();
+						}
 
 						if (isChunked == false)
 						{
-							args.WebSession.Response.ContentLength = args.WebSession.Response.Body.Length;
+							args.WebSession.Response.ContentLength = args.WebSession.Response.Body?.Length ?? 0;
 						}
 						else
 						{
@@ -219,8 +222,8 @@ namespace Titanium.Web.Proxy
 		/// <param name="encodingType">Type of the encoding.</param>
 		/// <param name="responseBodyStream">The response body stream.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
-		/// <returns>Compressed response body as byte array.</returns>
-		private async Task<byte[]> GetCompressedResponseBody(string encodingType, byte[] responseBodyStream, CancellationToken cancellationToken = default(CancellationToken))
+		/// <returns>Compressed response body as memory stream.</returns>
+		private async Task<MemoryStream> GetCompressedResponseBody(string encodingType, byte[] responseBodyStream, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			var compressionFactory = new CompressionFactory();
 			var compressor = compressionFactory.Create(encodingType);

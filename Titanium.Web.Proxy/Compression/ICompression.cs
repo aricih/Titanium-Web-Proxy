@@ -1,4 +1,5 @@
-﻿using System.Threading;
+﻿using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Titanium.Web.Proxy.Compression
@@ -8,6 +9,12 @@ namespace Titanium.Web.Proxy.Compression
 	/// </summary>
 	internal interface ICompression
 	{
-		Task<byte[]> Compress(byte[] responseBody, CancellationToken cancellationToken = default(CancellationToken));
+		/// <summary>
+		/// Compresses the specified response body.
+		/// </summary>
+		/// <param name="responseBody">The response body.</param>
+		/// <param name="cancellationToken">The cancellation token.</param>
+		/// <returns>Compressed data as memory stream.</returns>
+		Task<MemoryStream> Compress(byte[] responseBody, CancellationToken cancellationToken = default(CancellationToken));
 	}
 }

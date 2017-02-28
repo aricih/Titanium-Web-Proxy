@@ -13,34 +13,37 @@ namespace Titanium.Web.Proxy.Decompression
 		/// <summary>
 		/// Decompresses the specified compressed array.
 		/// </summary>
-		/// <param name="compressedArray">The compressed array.</param>
+		/// <param name="compressedStream">The compressed array.</param>
 		/// <param name="bufferSize">Size of the buffer.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
-		/// <returns>Decompressed data as byte array.</returns>
-		public async Task<byte[]> Decompress(byte[] compressedArray, int bufferSize, CancellationToken cancellationToken = default(CancellationToken))
+		/// <returns>Decompressed data as memory stream.</returns>
+		public async Task<MemoryStream> Decompress(MemoryStream compressedStream, int bufferSize, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			if (compressedArray == null || bufferSize < 1)
+			if (compressedStream == null || bufferSize < 1)
 			{
 				return null;
 			}
 
-			var stream = new MemoryStream(compressedArray);
-
-			using (var decompressor = new DeflateStream(stream, CompressionMode.Decompress))
+			using (var decompressor = new DeflateStream(compressedStream, CompressionMode.Decompress, true))
 			{
 				var buffer = new byte[bufferSize];
 
-				using (var output = new MemoryStream())
+				var output = new MemoryStream();
+
+				int read;
+
+				while ((read = await decompressor.ReadAsync(buffer, 0, buffer.Length, cancellationToken: cancellationToken)) > 0)
 				{
-					int read;
-
-					while ((read = await decompressor.ReadAsync(buffer, 0, buffer.Length, cancellationToken: cancellationToken)) > 0)
-					{
-						await output.WriteAsync(buffer, 0, read, cancellationToken: cancellationToken);
-					}
-
-					return cancellationToken.IsCancellationRequested ? null : output.ToArray();
+					await output.WriteAsync(buffer, 0, read, cancellationToken: cancellationToken);
 				}
+
+				if (cancellationToken.IsCancellationRequested)
+				{
+					output.Dispose();
+				}
+
+				return cancellationToken.IsCancellationRequested ? null : output;
+
 			}
 		}
 	}
