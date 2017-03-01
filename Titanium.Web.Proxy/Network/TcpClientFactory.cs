@@ -4,6 +4,7 @@ using System.IO;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Authentication;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Titanium.Web.Proxy.Authentication;
@@ -99,7 +100,7 @@ namespace Titanium.Web.Proxy.Network
 
 			if (isProxified)
 			{
-				using (var writer = new StreamWriter(result.Stream, ProxyConstants.DefaultEncoding, bufferSize, true))
+				using (var writer = new StreamWriter(result.Stream, Encoding.ASCII, bufferSize, true))
 				{
 					await writer.WriteLineAsync($"CONNECT {requestUri.Host}:{requestUri.Port} HTTP/{httpVersion}");
 					await writer.WriteLineAsync($"Host: {requestUri.Host}:{requestUri.Port}");
