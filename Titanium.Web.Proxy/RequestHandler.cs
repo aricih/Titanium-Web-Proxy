@@ -546,7 +546,7 @@ namespace Titanium.Web.Proxy
 			await clientStreamWriter.WriteLineAsync($"HTTP/{httpVersion.Major}.{httpVersion.Minor} 200 Connection established");
 			
 			// Write timestamp header
-			await clientStreamWriter.WriteLineAsync($"Timestamp: {DateTime.Now}");
+			await clientStreamWriter.WriteLineAsync($"Timestamp: {DateTime.UtcNow}");
 			
 			await clientStreamWriter.WriteLineAsync();
 			await clientStreamWriter.FlushAsync();

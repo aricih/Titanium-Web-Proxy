@@ -91,7 +91,7 @@ namespace Titanium.Web.Proxy
 				// Read response & headers from server
 				await args.WebSession.ReceiveResponse(args.ReRequest, cancellationToken: cancellationToken);
 
-				args.WebSession.Response.ResponseReceived = DateTime.Now;
+				args.WebSession.Response.ResponseReceived = DateTime.UtcNow;
 
 				if (!args.WebSession.Response.HasBodyRead)
 				{

@@ -68,7 +68,7 @@ namespace Titanium.Web.Proxy.Network
 
 		internal TcpConnection()
 		{
-			LastAccess = DateTime.Now;
+			LastAccess = DateTime.UtcNow;
 		}
 
 		/// <summary>

@@ -269,8 +269,8 @@ namespace Titanium.Web.Proxy.Network
 			const int validDays = 1825; //ValiDays
 			const int keyLength = 2048; //KeyLength
 
-			var graceTime = DateTime.Now.AddDays(graceDays);
-			var now = DateTime.Now;
+			var graceTime = DateTime.UtcNow.AddDays(graceDays);
+			var now = DateTime.UtcNow;
 
 			rCert = !isRoot ? MakeCertificate(false, fullSubject, keyLength, hashAlgo, graceTime, now.AddDays(validDays), signingCert) : MakeCertificate(true, fullSubject, keyLength, hashAlgo, graceTime, now.AddDays(validDays), null);
 

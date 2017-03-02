@@ -21,7 +21,7 @@ namespace Titanium.Web.Proxy.Network
 		/// </summary>
 		internal CachedCertificate()
 		{
-			LastAccess = DateTime.Now;
+			LastAccess = DateTime.UtcNow;
 		}
 
 	}

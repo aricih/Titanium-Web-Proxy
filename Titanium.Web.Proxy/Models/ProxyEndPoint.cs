@@ -40,9 +40,7 @@ namespace Titanium.Web.Proxy.Models
 		/// <summary>
 		/// Gets a value indicating whether [ip v6 enabled].
 		/// </summary>
-		public bool IpV6Enabled => IpAddress == IPAddress.IPv6Any
-								   || IpAddress == IPAddress.IPv6Loopback
-								   || IpAddress == IPAddress.IPv6None;
+		public bool IpV6Enabled => IpAddress.AddressFamily == AddressFamily.InterNetworkV6;
 
 		/// <summary>
 		/// Gets or sets the listener.

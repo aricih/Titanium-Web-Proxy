@@ -133,7 +133,7 @@ namespace Titanium.Web.Proxy.Network
 			if (_certificateCache.ContainsKey(certificateName))
 			{
 				var cached = _certificateCache[certificateName];
-				cached.LastAccess = DateTime.Now;
+				cached.LastAccess = DateTime.UtcNow;
 				return cached.Certificate;
 			}
 
@@ -165,7 +165,7 @@ namespace Titanium.Web.Proxy.Network
 					}
 
 					var cached = _certificateCache[certificateName];
-					cached.LastAccess = DateTime.Now;
+					cached.LastAccess = DateTime.UtcNow;
 					return cached.Certificate;
 				}
 			}
@@ -189,7 +189,7 @@ namespace Titanium.Web.Proxy.Network
 			ClearCertificates = true;
 			while (ClearCertificates)
 			{
-				var cutOff = DateTime.Now.AddMinutes(-1 * certificateCacheTimeOutMinutes);
+				var cutOff = DateTime.UtcNow.AddMinutes(-1 * certificateCacheTimeOutMinutes);
 
 				var outdated = _certificateCache
 					.Where(x => x.Value.LastAccess < cutOff)
