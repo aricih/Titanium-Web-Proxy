@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
 using System.Linq;
@@ -13,7 +14,7 @@ namespace Titanium.Web.Proxy.Network
 	{
 		private readonly CertificateMaker _certEngine;
 
-		private readonly ICertificateCache _certificateCache;
+		private readonly ConcurrentDictionary<string, CachedCertificate> _certificateCache;
 
 		private readonly Action<Exception> _exceptionFunc;
 
@@ -52,7 +53,7 @@ namespace Titanium.Web.Proxy.Network
 			Issuer = issuer;
 			RootCertificateName = rootCertificateName;
 
-			_certificateCache = new CertificateCache();
+			_certificateCache = new ConcurrentDictionary<string, CachedCertificate>();
 		}
 
 		/// <summary>
@@ -150,9 +151,10 @@ namespace Titanium.Web.Proxy.Network
 					{
 						_exceptionFunc(e);
 					}
+
 					if (certificate != null && !_certificateCache.ContainsKey(certificateName))
 					{
-						_certificateCache.Add(certificateName, new CachedCertificate { Certificate = certificate });
+						_certificateCache.TryAdd(certificateName, new CachedCertificate { Certificate = certificate });
 					}
 				}
 				else
@@ -194,7 +196,10 @@ namespace Titanium.Web.Proxy.Network
 					.ToList();
 
 				foreach (var cache in outdated)
-					_certificateCache.Remove(cache.Key);
+				{
+					CachedCertificate removedCertificate;
+					_certificateCache.TryRemove(cache.Key, out removedCertificate);
+				}
 
 				//after a minute come back to check for outdated certificates in cache
 				await Task.Delay(1000 * 60);
