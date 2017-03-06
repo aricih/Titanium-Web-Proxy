@@ -62,20 +62,22 @@ namespace Titanium.Web.Proxy.Network
 		/// <returns>X509Certificate2.</returns>
 		internal X509Certificate2 GetRootCertificate()
 		{
-			var fileName = Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location), "rootCert.pfx");
+			var x509RootStore = new X509Store(StoreName.Root, StoreLocation.CurrentUser);
 
-			if (!File.Exists(fileName))
-			{
-				return null;
-			}
+			x509RootStore.Open(OpenFlags.ReadOnly);
 
 			try
 			{
-				return new X509Certificate2(fileName, string.Empty, X509KeyStorageFlags.Exportable);
+				var certificates = x509RootStore.Certificates.Find(X509FindType.FindByIssuerName, Issuer, true);
+				return certificates.Count > 0 ? certificates[0] : null;
 			}
 			catch (Exception e)
 			{
 				_exceptionFunc(e);
+			}
+			finally
+			{
+				x509RootStore.Close();
 			}
 
 			return null;
@@ -87,7 +89,6 @@ namespace Titanium.Web.Proxy.Network
 		/// <returns>true if succeeded, else false</returns>
 		internal bool CreateTrustedRootCertificate()
 		{
-
 			RootCertificate = GetRootCertificate();
 
 			if (RootCertificate != null)
@@ -107,16 +108,6 @@ namespace Titanium.Web.Proxy.Network
 			if (RootCertificate == null)
 			{
 				return RootCertificate != null;
-			}
-
-			try
-			{
-				var fileName = Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location), "rootCert.pfx");
-				File.WriteAllBytes(fileName, RootCertificate.Export(X509ContentType.Pkcs12));
-			}
-			catch (Exception e)
-			{
-				_exceptionFunc(e);
 			}
 
 			return RootCertificate != null;

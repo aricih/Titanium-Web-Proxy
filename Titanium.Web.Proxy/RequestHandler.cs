@@ -106,7 +106,7 @@ namespace Titanium.Web.Proxy
 						clientStreamWriter = new StreamWriter(sslStream);
 
 					}
-					catch
+					catch(Exception ex)
 					{
 						sslStream?.Dispose();
 
