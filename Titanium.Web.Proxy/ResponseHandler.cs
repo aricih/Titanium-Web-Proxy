@@ -205,8 +205,10 @@ namespace Titanium.Web.Proxy
 			}
 			finally
 			{
+				var request = args.WebSession.Request;
+
 				// Remove cache entry if request body is recorded
-				if (args.WebSession.Request.HasBody && args.WebSession.Request.RecordBody)
+				if (request.HasBody && request.RecordBody)
 				{
 					string recordedBody;
 					RequestBodyCache.TryRemove(args.WebSession.RequestId, out recordedBody);

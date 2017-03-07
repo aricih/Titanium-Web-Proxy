@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using Org.BouncyCastle.Asn1;
