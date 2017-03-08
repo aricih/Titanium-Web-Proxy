@@ -282,6 +282,8 @@ namespace Titanium.Web.Proxy
 				throw new Exception("Cannot add another endpoint to same port & ip address");
 			}
 
+			endpoint.CancellationToken = cancellationToken;
+
 			ProxyEndPoints.Add(endpoint);
 
 			if (_proxyRunning)
