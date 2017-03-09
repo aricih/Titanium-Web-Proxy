@@ -80,6 +80,9 @@ namespace Titanium.Web.Proxy.Network
 
 			certificateGenerator.SetPublicKey(subjectKeyPair.Public);
 
+			// Set certificate intended purposes to only Server Authentication
+			certificateGenerator.AddExtension(X509Extensions.ExtendedKeyUsage.Id, false, new ExtendedKeyUsage(KeyPurposeID.IdKPServerAuth));
+
 			var signatureFactory = new Asn1SignatureFactory(signatureAlgorithm, issuerPrivateKey ?? subjectKeyPair.Private, secureRandom);
 
 			// Self-sign the certificate
