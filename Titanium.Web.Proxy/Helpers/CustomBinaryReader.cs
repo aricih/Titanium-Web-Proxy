@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -14,6 +15,8 @@ namespace Titanium.Web.Proxy.Helpers
 	/// </summary>
 	internal class CustomBinaryReader : BinaryReader
 	{
+		private int _totalBytesRead;
+
 		/// <summary>
 		/// Initializes a new instance of the <see cref="CustomBinaryReader"/> class.
 		/// </summary>
@@ -35,6 +38,8 @@ namespace Titanium.Web.Proxy.Helpers
 				
 				while (await BaseStream.ReadAsync(buffer, 0, 1, cancellationToken: cancellationToken) > 0)
 				{
+					_totalBytesRead++;
+
 					// If new line
 					if (lastChar == '\r' && buffer[0] == '\n')
 					{
@@ -46,6 +51,12 @@ namespace Titanium.Web.Proxy.Helpers
 					if (buffer[0] == '\0')
 					{
 						return ProxyConstants.DefaultEncoding.GetString(readBuffer.ToArray());
+					}
+
+					if (ProxyServer.Instance.AbortAtMaximumResponseSize 
+						&& _totalBytesRead > ProxyServer.Instance.MaximumResponseSizeAsBytes)
+					{
+						return string.Empty;
 					}
 
 					await readBuffer.WriteAsync(buffer, 0, 1, cancellationToken: cancellationToken);
@@ -84,6 +95,11 @@ namespace Titanium.Web.Proxy.Helpers
 		{
 			var bytesToRead = bufferSize;
 
+			if (totalBytesToRead > ProxyServer.Instance.MaximumResponseSizeAsBytes)
+			{
+				return Array.Empty<byte>();
+			}
+
 			if (totalBytesToRead < bufferSize)
 				bytesToRead = (int)totalBytesToRead;
 
@@ -98,9 +114,18 @@ namespace Titanium.Web.Proxy.Helpers
 				{
 					await outStream.WriteAsync(buffer, 0, bytesRead, cancellationToken: cancellationToken);
 					totalBytesRead += bytesRead;
+					_totalBytesRead += bytesRead;
+
+					if (ProxyServer.Instance.AbortAtMaximumResponseSize
+						&& _totalBytesRead > ProxyServer.Instance.MaximumResponseSizeAsBytes)
+					{
+						return Array.Empty<byte>();
+					}
 
 					if (totalBytesRead == totalBytesToRead)
+					{
 						break;
+					}
 
 					bytesRead = 0;
 					var remainingBytes = totalBytesToRead - totalBytesRead;

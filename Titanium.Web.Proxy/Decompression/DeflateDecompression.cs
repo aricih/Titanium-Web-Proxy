@@ -31,9 +31,18 @@ namespace Titanium.Web.Proxy.Decompression
 				var output = new MemoryStream();
 
 				int read;
+				var totalBytesRead = 0;
 
 				while ((read = await decompressor.ReadAsync(buffer, 0, buffer.Length, cancellationToken: cancellationToken)) > 0)
 				{
+					totalBytesRead += read;
+
+					if (ProxyServer.Instance.AbortAtMaximumResponseSize
+						&& totalBytesRead > ProxyServer.Instance.MaximumResponseSizeAsBytes)
+					{
+						return null;
+					}
+
 					await output.WriteAsync(buffer, 0, read, cancellationToken: cancellationToken);
 				}
 

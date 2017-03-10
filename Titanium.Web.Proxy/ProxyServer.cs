@@ -96,6 +96,16 @@ namespace Titanium.Web.Proxy
 		public bool Enable100ContinueBehaviour { get; set; }
 
 		/// <summary>
+		/// Gets or sets a value indicating whether [abort at maximum response size].
+		/// </summary>
+		public bool AbortAtMaximumResponseSize { get; set; }
+
+		/// <summary>
+		/// Gets or sets the maximum response size as bytes.
+		/// </summary>
+		public int MaximumResponseSizeAsBytes { get; set; } = 3096*1024;
+
+		/// <summary>
 		/// Minutes certificates should be kept in cache when not used
 		/// </summary>
 		public static int CertificateCacheTimeOutMinutes { get; set; } = 60;
