@@ -13,13 +13,6 @@ namespace Titanium.Web.Proxy.Helpers
 		Https,
 	}
 
-	internal partial class NativeMethods
-	{
-		[DllImport("wininet.dll")]
-		internal static extern bool InternetSetOption(IntPtr hInternet, int dwOption, IntPtr lpBuffer,
-			int dwBufferLength);
-	}
-
 	internal class HttpSystemProxyValue
 	{
 		internal string HostName { get; set; }

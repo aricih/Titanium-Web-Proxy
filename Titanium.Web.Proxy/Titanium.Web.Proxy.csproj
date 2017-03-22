@@ -23,7 +23,7 @@
     <OutputPath>bin\Debug\</OutputPath>
     <DefineConstants>DEBUG;NET45</DefineConstants>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
     <Prefer32Bit>false</Prefer32Bit>
     <DocumentationFile>bin\Debug\Titanium.Web.Proxy.XML</DocumentationFile>
   </PropertyGroup>
@@ -79,9 +79,14 @@
     <Compile Include="Helpers\HttpVersionParser.cs" />
     <Compile Include="Helpers\HttpRequestHead.cs" />
     <Compile Include="Helpers\HttpRequestHeadParser.cs" />
+    <Compile Include="Helpers\Tcp\IpVersion.cs" />
+    <Compile Include="Helpers\Tcp\NativeMethods.cs" />
     <Compile Include="Helpers\Network.cs" />
     <Compile Include="Authentication\AuthorizationHeaderCache.cs" />
     <Compile Include="Authentication\AuthenticationClient.cs" />
+    <Compile Include="Helpers\Tcp\TcpHelper.cs" />
+    <Compile Include="Helpers\Tcp\TcpRow.cs" />
+    <Compile Include="Helpers\Tcp\TcpTable.cs" />
     <Compile Include="Http\HttpMessage.cs" />
     <Compile Include="Models\EndPointType.cs" />
     <Compile Include="Models\ExplicitProxyEndpoint.cs" />
@@ -116,7 +121,6 @@
     <Compile Include="Helpers\CustomBinaryReader.cs" />
     <Compile Include="ProxyServer.cs" />
     <Compile Include="EventArguments\SessionEventArgs.cs" />
-    <Compile Include="Helpers\Tcp.cs" />
     <Compile Include="Extensions\StreamExtensions.cs" />
     <Compile Include="Http\Responses\OkResponse.cs" />
     <Compile Include="Http\Responses\RedirectResponse.cs" />

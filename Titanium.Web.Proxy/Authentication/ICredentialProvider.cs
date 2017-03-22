@@ -12,7 +12,6 @@ namespace Titanium.Web.Proxy.Authentication
 		/// <summary>
 		/// Gets the credentials.
 		/// </summary>
-		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <returns>NetworkCredential instance.</returns>
 		Task<NetworkCredential> GetCredentials();
 	}

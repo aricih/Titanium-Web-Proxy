@@ -35,7 +35,7 @@ namespace Titanium.Web.Proxy.Helpers
 			{
 				var lastChar = default(char);
 				var buffer = new byte[1];
-				
+
 				while (await BaseStream.ReadAsync(buffer, 0, 1, cancellationToken: cancellationToken) > 0)
 				{
 					_totalBytesRead++;
@@ -53,7 +53,7 @@ namespace Titanium.Web.Proxy.Helpers
 						return ProxyConstants.DefaultEncoding.GetString(readBuffer.ToArray());
 					}
 
-					if (ProxyServer.Instance.AbortAtMaximumResponseSize 
+					if (ProxyServer.Instance.AbortAtMaximumResponseSize
 						&& _totalBytesRead > ProxyServer.Instance.MaximumResponseSizeAsBytes)
 					{
 						return string.Empty;

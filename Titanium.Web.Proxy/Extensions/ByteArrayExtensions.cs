@@ -2,6 +2,9 @@
 
 namespace Titanium.Web.Proxy.Extensions
 {
+	/// <summary>
+	/// Implements extension methods for byte arrays
+	/// </summary>
 	public static class ByteArrayExtensions
 	{
 		/// <summary>
