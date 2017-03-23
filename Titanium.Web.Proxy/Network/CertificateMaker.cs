@@ -139,20 +139,27 @@ namespace Titanium.Web.Proxy.Network
 		/// <param name="switchToMtaIfNeeded">if set to <c>true</c> [switch to MTA if needed].</param>
 		/// <param name="signingCert">The signing cert.</param>
 		/// <returns>X509Certificate2.</returns>
-		private X509Certificate2 MakeCertificateInternal(string subject, bool isRoot, bool switchToMtaIfNeeded, X509Certificate2 signingCert = null)
+		private X509Certificate2 MakeCertificateInternal(string subject, bool isRoot, bool switchToMtaIfNeeded, X509Certificate2 signingCert = null, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			X509Certificate2 certificate = null;
 
 			if (switchToMtaIfNeeded && Thread.CurrentThread.GetApartmentState() != ApartmentState.MTA)
 			{
-				var manualResetEvent = new ManualResetEvent(false);
-				ThreadPool.QueueUserWorkItem(o =>
+				using (var manualResetEvent = new ManualResetEventSlim(false))
 				{
-					certificate = MakeCertificateInternal(subject, isRoot, false, signingCert);
-					manualResetEvent.Set();
-				});
-				manualResetEvent.WaitOne();
-				manualResetEvent.Close();
+					ThreadPool.QueueUserWorkItem(o =>
+					{
+						certificate = MakeCertificateInternal(subject, isRoot, false, signingCert);
+
+						if (!cancellationToken.IsCancellationRequested)
+						{
+							manualResetEvent?.Set();
+						}
+					});
+
+					manualResetEvent.Wait(TimeSpan.FromMinutes(1), cancellationToken: cancellationToken);
+				}
+
 				return certificate;
 			}
 
