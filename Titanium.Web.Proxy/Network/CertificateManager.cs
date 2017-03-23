@@ -3,7 +3,6 @@ using System.Collections.Concurrent;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
 using System.Linq;
-using System.IO;
 
 namespace Titanium.Web.Proxy.Network
 {
@@ -17,6 +16,8 @@ namespace Titanium.Web.Proxy.Network
 		private readonly ConcurrentDictionary<string, CachedCertificate> _certificateCache;
 
 		private readonly Action<Exception> _exceptionFunc;
+
+		private readonly StringLocker _stringLocker;
 
 		/// <summary>
 		/// Gets or sets a value indicating whether [clear certificates].
@@ -49,6 +50,7 @@ namespace Titanium.Web.Proxy.Network
 			_exceptionFunc = exceptionFunc;
 
 			_certEngine = new CertificateMaker();
+			_stringLocker = new StringLocker();
 
 			Issuer = issuer;
 			RootCertificateName = rootCertificateName;
@@ -130,7 +132,7 @@ namespace Titanium.Web.Proxy.Network
 
 			X509Certificate2 certificate = null;
 
-			lock (string.Intern(certificateName))
+			lock (_stringLocker.GetLockObject(certificateName))
 			{
 				if (!_certificateCache.ContainsKey(certificateName))
 				{
@@ -238,6 +240,31 @@ namespace Titanium.Web.Proxy.Network
 
 		public void Dispose()
 		{
+			_stringLocker.Dispose();
+		}
+
+		/// <summary>
+		/// Implements a string-wise locker mechanism
+		/// </summary>
+		private class StringLocker : IDisposable
+		{
+			private readonly ConcurrentDictionary<string, object> _locks =
+				new ConcurrentDictionary<string, object>();
+
+			/// <summary>
+			/// Gets the lock object
+			/// </summary>
+			/// <param name="stringToLockOn">String to provide a lock object on</param>
+			/// <returns></returns>
+			public object GetLockObject(string stringToLockOn)
+			{
+				return _locks.GetOrAdd(stringToLockOn, k => new object());
+			}
+
+			public void Dispose()
+			{
+				_locks.Clear();
+			}
 		}
 	}
 }
