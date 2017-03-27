@@ -15,6 +15,7 @@ namespace Titanium.Web.Proxy.Helpers
 	/// </summary>
 	internal class CustomBinaryReader : BinaryReader
 	{
+
 		private int _totalBytesRead;
 
 		/// <summary>
@@ -35,6 +36,11 @@ namespace Titanium.Web.Proxy.Helpers
 			{
 				var lastChar = default(char);
 				var buffer = new byte[1];
+
+				if (BaseStream == null || !BaseStream.CanRead)
+				{
+					return string.Empty;
+				}
 
 				while (await BaseStream.ReadAsync(buffer, 0, 1, cancellationToken: cancellationToken) > 0)
 				{
