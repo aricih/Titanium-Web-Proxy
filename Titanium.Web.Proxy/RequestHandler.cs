@@ -7,6 +7,7 @@ using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Authentication;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Titanium.Web.Proxy.EventArguments;
@@ -39,7 +40,7 @@ namespace Titanium.Web.Proxy
 			clientStream.WriteTimeout = ConnectionTimeOutSeconds * 1000;
 
 			var clientStreamReader = new CustomBinaryReader(clientStream);
-			var clientStreamWriter = new StreamWriter(clientStream, ProxyConstants.DefaultEncoding, BufferSize, true);
+			var clientStreamWriter = new StreamWriter(clientStream, Encoding.ASCII, BufferSize, true);
 
 			try
 			{
