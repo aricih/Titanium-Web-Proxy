@@ -9,64 +9,64 @@ namespace Titanium.Web.Proxy.Network
 	/// <summary>
 	/// An object that holds TcpConnection to a particular server and port
 	/// </summary>
-	public class TcpConnection : IDisposable
+	internal class TcpConnection : IDisposable
 	{
 		/// <summary>
 		/// Gets or sets up stream HTTP proxy.
 		/// </summary>
-		internal ExternalProxy UpstreamHttpProxy { get; set; }
+		public ExternalProxy UpstreamHttpProxy { get; set; }
 
 		/// <summary>
 		/// Gets or sets up stream HTTPS proxy.
 		/// </summary>
-		internal ExternalProxy UpstreamHttpsProxy { get; set; }
+		public ExternalProxy UpstreamHttpsProxy { get; set; }
 
 		/// <summary>
 		/// Gets or sets the name of the host.
 		/// </summary>
-		internal string HostName { get; set; }
+		public string HostName { get; set; }
 
 		/// <summary>
 		/// Gets or sets the port.
 		/// </summary>
-		internal int Port { get; set; }
+		public int Port { get; set; }
 
 		/// <summary>
 		/// Gets or sets a value indicating whether this instance is HTTPS.
 		/// </summary>
-		internal bool IsHttps { get; set; }
+		public bool IsHttps { get; set; }
 
 		/// <summary>
 		/// Gets or sets a value indicating whether [pre authenticate used].
 		/// </summary>
-		internal bool PreAuthenticateUsed { get; set; }
+		public bool PreAuthenticateUsed { get; set; }
 
 		/// <summary>
 		/// Http version
 		/// </summary>
-		internal Version Version { get; set; }
+		public Version Version { get; set; }
 
 		/// <summary>
 		/// Gets or sets the TCP client.
 		/// </summary>
-		internal TcpClient TcpClient { get; set; }
+		public TcpClient TcpClient { get; set; }
 
 		/// <summary>
 		/// used to read lines from server
 		/// </summary>
-		internal CustomBinaryReader StreamReader { get; set; }
+		public CustomBinaryReader StreamReader { get; set; }
 
 		/// <summary>
 		/// Server stream
 		/// </summary>
-		internal Stream Stream { get; set; }
+		public Stream Stream { get; set; }
 
 		/// <summary>
 		/// Last time this connection was used
 		/// </summary>
-		internal DateTime LastAccess { get; set; }
+		public DateTime LastAccess { get; set; }
 
-		internal TcpConnection()
+		public TcpConnection()
 		{
 			LastAccess = DateTime.UtcNow;
 		}
@@ -76,15 +76,21 @@ namespace Titanium.Web.Proxy.Network
 		/// </summary>
 		public void Dispose()
 		{
-			Stream.Close();
-			Stream.Dispose();
+			Stream?.Close();
+			Stream?.Dispose();
 
-			TcpClient.LingerState = new LingerOption(true, 0);
-			TcpClient.Client.Shutdown(SocketShutdown.Both);
-			TcpClient.Client.Close();
-			TcpClient.Client.Dispose();
+			if (TcpClient != null)
+			{
+				TcpClient.LingerState = new LingerOption(true, 0);
+			}
 
-			TcpClient.Close();
+			TcpClient?.Client?.Shutdown(SocketShutdown.Both);
+			TcpClient?.Client?.Close();
+			TcpClient?.Client?.Dispose();
+
+			TcpClient?.Close();
+
+			StreamReader?.Dispose();
 		}
 	}
 }

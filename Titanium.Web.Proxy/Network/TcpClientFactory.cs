@@ -122,11 +122,6 @@ namespace Titanium.Web.Proxy.Network
 					await writer.FlushAsync();
 					writer.Close();
 				}
-
-				using (var reader = new CustomBinaryReader(result.Stream))
-				{
-					await reader.ReadAllLinesAsync(cancellationToken: cancellationToken);
-				}
 			}
 
 			if (cancellationToken.IsCancellationRequested)
