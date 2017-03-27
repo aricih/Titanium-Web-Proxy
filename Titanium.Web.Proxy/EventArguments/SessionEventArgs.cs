@@ -23,6 +23,10 @@ namespace Titanium.Web.Proxy.EventArguments
 	/// </summary>
 	public class SessionEventArgs : EventArgs, IDisposable
 	{
+		private readonly object _disposeLock = new object();
+
+		private bool _disposed;
+
 		/// <summary>
 		/// Size of Buffers used by this object
 		/// </summary>
@@ -521,11 +525,25 @@ namespace Titanium.Web.Proxy.EventArguments
 			await _httpResponseHandler(this, cancellationToken);
 		}
 
-		/// <summary>
-		/// implement any cleanup here
-		/// </summary>
+		protected virtual void Dispose(bool disposing)
+		{
+			lock (_disposeLock)
+			{
+				if (_disposed || !disposing)
+				{
+					return;
+				}
+
+				ProxyClient?.Dispose();
+				WebSession?.Dispose();
+
+				_disposed = true;
+			}
+		}
+
 		public void Dispose()
 		{
+			Dispose(true);
 		}
 	}
 }

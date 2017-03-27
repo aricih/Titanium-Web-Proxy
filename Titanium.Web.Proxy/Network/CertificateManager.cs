@@ -19,6 +19,8 @@ namespace Titanium.Web.Proxy.Network
 
 		private readonly StringLocker _stringLocker;
 
+		private const int OutdatedCertificatesCheckDelay = 1000 * 60;
+
 		/// <summary>
 		/// Gets or sets a value indicating whether [clear certificates].
 		/// </summary>
@@ -177,7 +179,7 @@ namespace Titanium.Web.Proxy.Network
 		/// <summary>
 		/// A method to clear outdated certificates
 		/// </summary>
-		internal async void ClearIdleCertificates(int certificateCacheTimeOutMinutes)
+		internal async Task ClearIdleCertificates(int certificateCacheTimeOutMinutes)
 		{
 			ClearCertificates = true;
 			while (ClearCertificates)
@@ -195,7 +197,7 @@ namespace Titanium.Web.Proxy.Network
 				}
 
 				//after a minute come back to check for outdated certificates in cache
-				await Task.Delay(1000 * 60);
+				await Task.Delay(OutdatedCertificatesCheckDelay);
 			}
 		}
 
