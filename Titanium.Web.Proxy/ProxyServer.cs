@@ -227,6 +227,11 @@ namespace Titanium.Web.Proxy
 		public bool ForceSimpleAuthentication { get; set; }
 
 		/// <summary>
+		/// Gets or sets a value indicating whether cache is disabled.
+		/// </summary>
+		public bool DisableCache { get; set; }
+
+		/// <summary>
 		/// Gets or sets the default name of the root certificate.
 		/// </summary>
 		public static string DefaultRootCertificateName { get; set; } = "Titanium Root Certificate Authority";

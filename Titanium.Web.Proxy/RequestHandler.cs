@@ -574,6 +574,12 @@ namespace Titanium.Web.Proxy
 				}
 			}
 
+			if (DisableCache)
+			{
+				requestHeaders["cache-control"] = new HttpHeader("cache-control", "no-cache, no-store");
+				requestHeaders["pragma"] = new HttpHeader("pragma", "no-cache");
+			}
+
 			FixProxyHeaders(requestHeaders);
 			webRequest.Request.Headers = requestHeaders;
 		}
