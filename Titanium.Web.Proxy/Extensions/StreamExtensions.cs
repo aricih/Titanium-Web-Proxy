@@ -63,6 +63,8 @@ namespace Titanium.Web.Proxy.Extensions
 
 				await stream.WriteAsync(buffer, 0, buffer.Length, cancellationToken: cancellationToken);
 			}
+
+			stream.Seek(0, SeekOrigin.Begin);
 		}
 
 		/// <summary>
