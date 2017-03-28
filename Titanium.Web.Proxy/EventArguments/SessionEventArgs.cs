@@ -143,7 +143,7 @@ namespace Titanium.Web.Proxy.EventArguments
 						}
 					}
 
-					using (var bodyStream = await GetDecompressedResponseBody(
+					using (var bodyStream = await GetDecompressedBody(
 						WebSession.Request.ContentEncoding,
 						requestBodyStream,
 						cancellationToken: cancellationToken))
@@ -198,17 +198,16 @@ namespace Titanium.Web.Proxy.EventArguments
 						}
 					}
 
-					using (var bodyStream = await GetDecompressedResponseBody(
-						WebSession.Request.ContentEncoding,
+					using (var bodyStream = await GetDecompressedBody(
+						WebSession.Response.ContentEncoding,
 						responseBodyStream,
 						cancellationToken: cancellationToken))
 					{
 
 						WebSession.Response.Body = (bodyStream as MemoryStream)?.ToArray();
 					}
-
 				}
-				//set this to true for caching
+
 				WebSession.Response.HasBodyRead = true;
 			}
 		}
@@ -404,18 +403,18 @@ namespace Titanium.Web.Proxy.EventArguments
 		}
 
 		/// <summary>
-		/// Gets the decompressed response body.
+		/// Gets the decompressed body.
 		/// </summary>
 		/// <param name="encodingType">Type of the encoding.</param>
-		/// <param name="responseBodyStream">The response body stream.</param>
+		/// <param name="bodyStream">The body stream.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <returns>Decompressed response body.</returns>
-		private async Task<Stream> GetDecompressedResponseBody(string encodingType, MemoryStream responseBodyStream, CancellationToken cancellationToken = default(CancellationToken))
+		private async Task<Stream> GetDecompressedBody(string encodingType, MemoryStream bodyStream, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			var decompressionFactory = new DecompressionFactory();
 			var decompressor = decompressionFactory.Create(encodingType);
 
-			return await decompressor.Decompress(responseBodyStream, _bufferSize, cancellationToken: cancellationToken);
+			return await decompressor.Decompress(bodyStream, _bufferSize, cancellationToken: cancellationToken);
 		}
 
 		/// <summary>

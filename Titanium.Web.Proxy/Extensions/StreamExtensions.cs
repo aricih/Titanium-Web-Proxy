@@ -97,6 +97,8 @@ namespace Titanium.Web.Proxy.Extensions
 					break;
 				}
 			}
+
+			stream.Seek(0, SeekOrigin.Begin);
 		}
 
 		/// <summary>

@@ -307,7 +307,7 @@ namespace Titanium.Web.Proxy
 				{
 					if (request.ContentEncoding != null)
 					{
-						using (var compressedStream = await GetCompressedResponseBody(
+						using (var compressedStream = await GetCompressedBody(
 							request.ContentEncoding,
 							request.Body,
 							cancellationToken: cancellationToken))
