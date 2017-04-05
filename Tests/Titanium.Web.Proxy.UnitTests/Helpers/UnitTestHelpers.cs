@@ -1,7 +1,7 @@
 ﻿using System.Net;
 using NSubstitute;
 
-namespace UnitTests.Titanium.Web.Proxy.Helpers
+namespace Titanium.Web.Proxy.UnitTests.Helpers
 {
 	internal static class UnitTestHelpers
 	{

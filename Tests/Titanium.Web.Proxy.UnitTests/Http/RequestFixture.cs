@@ -2,7 +2,7 @@
 using Titanium.Web.Proxy.Http;
 using Titanium.Web.Proxy.Models;
 
-namespace UnitTests.Titanium.Web.Proxy.Http
+namespace Titanium.Web.Proxy.UnitTests.Http
 {
 	[TestFixture]
 	public class RequestFixture

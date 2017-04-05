@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections;
-using System.IO;
 using NUnit.Framework;
 using Titanium.Web.Proxy.Compression;
 

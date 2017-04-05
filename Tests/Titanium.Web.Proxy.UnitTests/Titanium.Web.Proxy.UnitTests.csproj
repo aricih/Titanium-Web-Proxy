@@ -67,13 +67,14 @@
     <Compile Include="Extensions\ByteArrayExtensionsFixture.cs" />
     <Compile Include="Extensions\StreamExtensionsFixture.cs" />
     <Compile Include="Helpers\GZipCompressedByteArray.cs" />
+    <Compile Include="Helpers\HttpRequestHeadParserFixture.cs" />
     <Compile Include="Helpers\IpAddress.cs" />
     <Compile Include="Helpers\UnitTestHelpers.cs" />
     <Compile Include="Http\RequestFixture.cs" />
     <Compile Include="Http\ResponseFixture.cs" />
     <Compile Include="Models\HttpHeaderCollectionFixture.cs" />
     <Compile Include="Models\HttpHeaderFixture.cs" />
-    <Compile Include="Models\ProxyEndPointFixture.cs" />
+    <Compile Include="Models\ProxyEndpointFixture.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

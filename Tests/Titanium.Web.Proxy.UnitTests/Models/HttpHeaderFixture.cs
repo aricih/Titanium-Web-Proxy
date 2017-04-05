@@ -2,7 +2,7 @@
 using NUnit.Framework;
 using Titanium.Web.Proxy.Models;
 
-namespace UnitTests.Titanium.Web.Proxy.Models
+namespace Titanium.Web.Proxy.UnitTests.Models
 {
 	[TestFixture]
 	public class HttpHeaderFixture

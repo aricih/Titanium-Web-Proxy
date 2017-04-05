@@ -1,4 +1,4 @@
-﻿namespace UnitTests.Titanium.Web.Proxy.Helpers
+﻿namespace Titanium.Web.Proxy.UnitTests.Helpers
 {
 	/// <summary>
 	/// IpAddress enumeration as test case parameter

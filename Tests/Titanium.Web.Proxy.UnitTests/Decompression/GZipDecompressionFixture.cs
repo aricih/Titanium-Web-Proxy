@@ -3,7 +3,7 @@ using System.Collections;
 using System.IO;
 using NUnit.Framework;
 using Titanium.Web.Proxy.Decompression;
-using UnitTests.Titanium.Web.Proxy.Helpers;
+using Titanium.Web.Proxy.UnitTests.Helpers;
 
 namespace Titanium.Web.Proxy.UnitTests.Decompression
 {

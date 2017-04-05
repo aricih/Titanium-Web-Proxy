@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections;
-using System.IO;
 using NUnit.Framework;
 using Titanium.Web.Proxy.Compression;
+using Titanium.Web.Proxy.UnitTests.Helpers;
 using UnitTests.Titanium.Web.Proxy.Helpers;
 
 namespace Titanium.Web.Proxy.UnitTests.Compression
