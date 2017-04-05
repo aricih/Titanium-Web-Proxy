@@ -1,4 +1,5 @@
-﻿using Titanium.Web.Proxy.Shared;
+﻿using System;
+using Titanium.Web.Proxy.Shared;
 
 namespace Titanium.Web.Proxy.Helpers
 {
@@ -14,16 +15,24 @@ namespace Titanium.Web.Proxy.Helpers
 		/// <returns>HttpResponseHead instance containing HTTP version, status code and status description.</returns>
 		internal static HttpResponseHead Parse(string httpCommand)
 		{
+			if (string.IsNullOrEmpty(httpCommand))
+			{
+				return null;
+			}
+
 			var result = new HttpResponseHead();
 
 			// Break up the line into three components (version, status code & status description)
-			var httpCommandSplit = httpCommand.Split(ProxyConstants.SpaceSplit, 3);
+			var httpCommandSplit = httpCommand.Split(ProxyConstants.SpaceSplit, 3, StringSplitOptions.RemoveEmptyEntries);
 
 			result.Version = HttpVersionParser.Parse(httpCommandSplit, HttpCommandType.Response);
 
-			int statusCode;
+			if (result.Version == null)
+			{
+				return null;
+			}
 
-			if (httpCommandSplit.Length > 1 && int.TryParse(httpCommandSplit[1].Trim(), out statusCode))
+			if (httpCommandSplit.Length > 1 && int.TryParse(httpCommandSplit[1].Trim(), out int statusCode))
 			{
 				result.StatusCode = statusCode;
 			}

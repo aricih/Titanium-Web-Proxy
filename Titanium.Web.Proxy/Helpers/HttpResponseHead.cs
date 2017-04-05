@@ -5,7 +5,7 @@ namespace Titanium.Web.Proxy.Helpers
 	/// <summary>
 	/// Represents the first line of a HTTP response.
 	/// </summary>
-	internal struct HttpResponseHead
+	internal class HttpResponseHead
 	{
 		/// <summary>
 		/// Gets or sets the version.

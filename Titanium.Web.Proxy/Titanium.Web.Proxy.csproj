@@ -74,6 +74,7 @@
     <Compile Include="EventArguments\CertificateValidationEventArgs.cs" />
     <Compile Include="Extensions\ByteArrayExtensions.cs" />
     <Compile Include="Extensions\CancellationTokenExtensions.cs" />
+    <Compile Include="Helpers\HttpCommandType.cs" />
     <Compile Include="Helpers\HttpResponseHead.cs" />
     <Compile Include="Helpers\HttpResponseHeadParser.cs" />
     <Compile Include="Helpers\HttpVersionParser.cs" />

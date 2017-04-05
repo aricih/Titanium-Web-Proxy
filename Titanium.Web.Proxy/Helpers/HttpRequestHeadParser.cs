@@ -1,4 +1,5 @@
-﻿using Titanium.Web.Proxy.Shared;
+﻿using System;
+using Titanium.Web.Proxy.Shared;
 
 namespace Titanium.Web.Proxy.Helpers
 {
@@ -14,16 +15,24 @@ namespace Titanium.Web.Proxy.Helpers
 		/// <returns>HttpRequestHead instance containing request method, URL, HTTP version info.</returns>
 		internal static HttpRequestHead Parse(string httpCommand)
 		{
+			if (string.IsNullOrEmpty(httpCommand))
+			{
+				return null;
+			}
+
 			var result = new HttpRequestHead();
 
 			// Break up the line into three components (method, remote URL & Http Version)
-			var httpCommandSplit = httpCommand.Split(ProxyConstants.SpaceSplit, 3);
+			var httpCommandSplit = httpCommand.Split(ProxyConstants.SpaceSplit, 3, StringSplitOptions.RemoveEmptyEntries);
 
 			result.Method = httpCommandSplit.Length > 0 ? httpCommandSplit[0].Trim() : string.Empty;
+
+			// TODO: Check if method is a valid HTTP verb
+
 			result.Url = httpCommandSplit.Length > 1 ? httpCommandSplit[1].Trim() : string.Empty;
 			result.Version = HttpVersionParser.Parse(httpCommandSplit, HttpCommandType.Request);
 
-			return result;
+			return result.Version != null ? result : null;
 		} 
 	}
 }

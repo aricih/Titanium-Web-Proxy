@@ -8,28 +8,25 @@ namespace Titanium.Web.Proxy.Helpers
 		private static readonly Version HttpVersion11 = new Version(1, 1);
 
 		private const string HttpVersion10String = "http/1.0";
+		private const string HttpVersion11String = "http/1.1";
 
 		internal static Version Parse(string[] httpCommandSplit, HttpCommandType commandType)
 		{
-			var version = HttpVersion11;
-
 			var versionIndex = commandType == HttpCommandType.Response ? 0 : 2;
 
-			if (httpCommandSplit.Length > versionIndex && httpCommandSplit[versionIndex].Equals(HttpVersion10String, StringComparison.InvariantCultureIgnoreCase))
+			var versionString = httpCommandSplit.Length > versionIndex ? httpCommandSplit[versionIndex] : null;
+
+			if (string.IsNullOrEmpty(versionString))
 			{
-				version = HttpVersion10;
+				return null;
 			}
 
-			return version;
-		}
-	}
+			if (versionString.Equals(HttpVersion10String, StringComparison.InvariantCultureIgnoreCase))
+			{
+				return HttpVersion10;
+			}
 
-	/// <summary>
-	/// Enumerates Http command types
-	/// </summary>
-	internal enum HttpCommandType
-	{
-		Response = 0,
-		Request = 1
+			return versionString.Equals(HttpVersion11String, StringComparison.InvariantCultureIgnoreCase) ? HttpVersion11 : null;
+		}
 	}
 }

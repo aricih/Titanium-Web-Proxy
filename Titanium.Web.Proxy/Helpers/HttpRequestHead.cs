@@ -5,7 +5,7 @@ namespace Titanium.Web.Proxy.Helpers
 	/// <summary>
 	/// Represents the first line of a HTTP request.
 	/// </summary>
-	internal struct HttpRequestHead
+	internal class HttpRequestHead
 	{
 		/// <summary>
 		/// Gets or sets the method.
