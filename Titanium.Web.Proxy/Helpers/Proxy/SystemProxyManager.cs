@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Runtime.InteropServices;
 using Microsoft.Win32;
 using System.Text.RegularExpressions;
 using System.Collections.Generic;
@@ -7,24 +6,6 @@ using System.Linq;
 
 namespace Titanium.Web.Proxy.Helpers
 {
-	internal enum ProxyProtocolType
-	{
-		Http,
-		Https,
-	}
-
-	internal class HttpSystemProxyValue
-	{
-		internal string HostName { get; set; }
-		internal int Port { get; set; }
-		internal bool IsHttps { get; set; }
-
-		public override string ToString()
-		{
-			return $"{(IsHttps ? "https" : "http")}={HostName}:{Port}";
-		}
-	}
-
 	/// <summary>
 	/// Manage system proxy settings
 	/// </summary>
