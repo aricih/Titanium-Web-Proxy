@@ -8,7 +8,9 @@
 
 		public override string ToString()
 		{
-			return $"{(IsHttps ? "https" : "http")}={HostName}:{Port}";
+			return string.IsNullOrEmpty(HostName) 
+				? string.Empty 
+				: $"{(IsHttps ? "https" : "http")}={HostName}:{Port}";
 		}
 	}
 }

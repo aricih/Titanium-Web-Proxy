@@ -186,7 +186,9 @@ namespace Titanium.Web.Proxy.Helpers
 			var result = new List<HttpSystemProxyValue>();
 
 			if (string.IsNullOrWhiteSpace(prevServerValue))
+			{
 				return result;
+			}
 
 			var proxyValues = prevServerValue.Split(';');
 
@@ -197,8 +199,11 @@ namespace Titanium.Web.Proxy.Helpers
 			else
 			{
 				var parsedValue = ParseProxyValue(prevServerValue);
+
 				if (parsedValue != null)
+				{
 					result.Add(parsedValue);
+				}
 			}
 
 			return result;
@@ -213,7 +218,7 @@ namespace Titanium.Web.Proxy.Helpers
 		{
 			var tmp = Regex.Replace(value, @"\s+", " ").Trim();
 
-			if (!tmp.StartsWith("http=", StringComparison.InvariantCultureIgnoreCase) 
+			if (!tmp.StartsWith("http=", StringComparison.InvariantCultureIgnoreCase)
 				&& !tmp.StartsWith("https=", StringComparison.InvariantCultureIgnoreCase))
 			{
 				return null;

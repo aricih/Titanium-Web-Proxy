@@ -80,6 +80,8 @@
     <Compile Include="Helpers\HttpVersionParser.cs" />
     <Compile Include="Helpers\HttpRequestHead.cs" />
     <Compile Include="Helpers\HttpRequestHeadParser.cs" />
+    <Compile Include="Helpers\Proxy\HttpSystemProxyValue.cs" />
+    <Compile Include="Helpers\Proxy\ProxyProtocolType.cs" />
     <Compile Include="Helpers\Tcp\IpVersion.cs" />
     <Compile Include="Helpers\Tcp\NativeMethods.cs" />
     <Compile Include="Helpers\Network.cs" />
@@ -103,7 +105,7 @@
     <Compile Include="Exceptions\ProxyHttpException.cs" />
     <Compile Include="Network\CertificateManager.cs" />
     <Compile Include="Helpers\Firefox.cs" />
-    <Compile Include="Helpers\SystemProxy.cs" />
+    <Compile Include="Helpers\Proxy\SystemProxyManager.cs" />
     <Compile Include="Models\ProxyEndpoint.cs" />
     <Compile Include="Http\Request.cs" />
     <Compile Include="Http\Response.cs" />

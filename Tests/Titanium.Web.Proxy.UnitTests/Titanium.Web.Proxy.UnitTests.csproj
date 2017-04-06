@@ -70,6 +70,7 @@
     <Compile Include="Helpers\GZipCompressedByteArray.cs" />
     <Compile Include="Helpers\HttpResponseHeadParserFixture.cs" />
     <Compile Include="Helpers\HttpRequestHeadParserFixture.cs" />
+    <Compile Include="Helpers\HttpSystemProxyValueFixture.cs" />
     <Compile Include="Helpers\HttpVersionParserFixture.cs" />
     <Compile Include="Helpers\IpAddress.cs" />
     <Compile Include="Helpers\UnitTestHelpers.cs" />
