@@ -66,6 +66,7 @@
     <Compile Include="Decompression\ZlibDecompressionFixture.cs" />
     <Compile Include="Extensions\ByteArrayExtensionsFixture.cs" />
     <Compile Include="Extensions\StreamExtensionsFixture.cs" />
+    <Compile Include="Helpers\CustomBinaryReaderFixture.cs" />
     <Compile Include="Helpers\GZipCompressedByteArray.cs" />
     <Compile Include="Helpers\HttpResponseHeadParserFixture.cs" />
     <Compile Include="Helpers\HttpRequestHeadParserFixture.cs" />
